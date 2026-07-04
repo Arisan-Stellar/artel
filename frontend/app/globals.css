@@ -1,0 +1,662 @@
+@import "tailwindcss";
+
+@theme {
+  --color-artel: #f59e0b;
+  --color-teal: #14b8a6;
+  --color-amber: #d98200;
+  --color-crack: #e0140a;
+  --color-sui: #38bdf8;
+  --color-orange: #f8672d;
+}
+
+.bg-grid-brutal {
+  background-color: #f0ead2;
+  background-image:
+    radial-gradient(#0a0a0a 1px, transparent 1px);
+  background-size: 12px 12px;
+}
+
+/* Pool Card — brutal subscribe style */
+.brutal-card-pool {
+  width: 100%;
+  background-color: #fff;
+  border: 5px solid #000;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 12px 12px 0 rgba(0, 0, 0, 0.5);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.brutal-card-pool:hover {
+  transform: translate(-5px, -5px);
+  box-shadow: 15px 15px 0 rgba(0, 0, 0, 0.2);
+}
+
+.brutal-card-pool .card-header {
+  background-color: #000;
+  color: #fff;
+  padding: 14px 18px;
+  position: relative;
+  overflow: hidden;
+}
+
+.brutal-card-pool .card-header::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: repeating-linear-gradient(45deg, #f59e0b 0, #f59e0b 10px, #000 10px, #000 20px);
+  opacity: 0.08;
+  animation: stripe-anim 20s linear infinite;
+}
+
+@keyframes stripe-anim {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.brutal-card-pool .card-body {
+  padding: 16px 18px;
+}
+
+.brutal-card-pool:hover .card-title {
+  animation: glitch-pool 0.3s infinite;
+}
+
+@keyframes glitch-pool {
+  0% { transform: translate(0); }
+  20% { transform: translate(-2px, 1px); }
+  40% { transform: translate(-2px, -1px); }
+  60% { transform: translate(2px, 1px); }
+  80% { transform: translate(2px, -1px); }
+  100% { transform: translate(0); }
+}
+
+.brutal-card-pool .decor-tag {
+  position: absolute;
+  bottom: -8px;
+  right: -6px;
+  background-color: #f59e0b;
+  color: #000;
+  padding: 4px 10px;
+  transform: rotate(-3deg);
+  font-weight: bold;
+  font-size: 18px;
+  border: 3px solid #000;
+  transition: transform 0.3s;
+  font-family: 'Bebas Neue', system-ui, sans-serif;
+}
+
+.brutal-card-pool:hover .decor-tag {
+  transform: rotate(3deg);
+}
+
+/* Faucet — brutal subscribe style */
+.brutal-subscribe__container {
+  width: 100%;
+  background-color: #fff;
+  border: 5px solid #000;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 15px 15px 0 rgba(0, 0, 0, 0.6);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.brutal-subscribe__container:hover {
+  transform: translate(-5px, -5px);
+  box-shadow: 20px 20px 0 rgba(0, 0, 0, 0.2);
+}
+
+.brutal-subscribe__header {
+  background-color: #a78bfa;
+  color: #fff;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.brutal-subscribe__header::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: repeating-linear-gradient(45deg, #ddd6fe 0, #ddd6fe 10px, #a78bfa 10px, #a78bfa 20px);
+  opacity: 0.12;
+  animation: stripe-anim 20s linear infinite;
+}
+
+.brutal-subscribe__title {
+  display: block;
+  font-size: 36px;
+  font-weight: bold;
+  position: relative;
+  z-index: 1;
+  text-shadow: 3px 3px 0 #7c3aed;
+}
+
+.brutal-subscribe__subtitle {
+  display: block;
+  font-size: 14px;
+  position: relative;
+  z-index: 1;
+}
+
+.brutal-subscribe__form {
+  padding: 20px;
+}
+
+.brutal-subscribe__button {
+  width: 100%;
+  padding: 10px;
+  background-color: #a78bfa;
+  color: #fff;
+  border: 3px solid #000;
+  font-family: inherit;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+.brutal-subscribe__button::after {
+  content: "→";
+  position: absolute;
+  top: 50%;
+  right: -30px;
+  transform: translateY(-50%);
+  transition: right 0.3s;
+}
+
+.brutal-subscribe__button:hover {
+  background-color: #ddd6fe;
+  color: #4c1d95;
+}
+
+.brutal-subscribe__button:hover::after {
+  right: 10px;
+}
+
+.brutal-subscribe__decor {
+  position: absolute;
+  bottom: -8px;
+  right: -6px;
+  background-color: #ddd6fe;
+  color: #4c1d95;
+  padding: 5px 10px;
+  transform: rotate(-5deg);
+  font-weight: bold;
+  font-size: 24px;
+  border: 3px solid #000;
+  transition: transform 0.3s;
+}
+
+.brutal-subscribe__container:hover .brutal-subscribe__decor {
+  transform: rotate(3deg);
+}
+
+.brutal-subscribe__container:hover .brutal-subscribe__title {
+  animation: glitch-pool 0.3s infinite;
+}
+
+/* Cooldown variant — soft purple */
+.brutal-subscribe__container.cooldown .brutal-subscribe__header {
+  background-color: #7c3aed;
+}
+
+.brutal-subscribe__container.cooldown .brutal-subscribe__header::before {
+  background: repeating-linear-gradient(45deg, #c4b5fd 0, #c4b5fd 10px, #7c3aed 10px, #7c3aed 20px);
+}
+
+.brutal-subscribe__container.cooldown .brutal-subscribe__title {
+  text-shadow: 3px 3px 0 #5b21b6;
+}
+
+/* Connected Wallet Card */
+.card {
+  --primary: #f59e0b;
+  --primary-hover: #fbbf24;
+  --secondary: #38bdf8;
+  --secondary-hover: #7dd3fc;
+  --accent: #14b8a6;
+  --text: #050505;
+  --bg: #ffffff;
+  --shadow-color: #000000;
+  --pattern-color: #94a3b8;
+  position: relative;
+  width: 100%;
+  background: var(--bg);
+  border: 0.35em solid var(--text);
+  border-radius: 0.6em;
+  box-shadow: 0.7em 0.7em 0 var(--shadow-color), inset 0 0 0 0.15em rgba(0,0,0,0.05);
+  transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+  overflow: hidden;
+  transform-origin: center;
+}
+
+.card:hover { transform: translate(-0.4em, -0.4em) scale(1.02); box-shadow: 1em 1em 0 var(--shadow-color); }
+.card:hover .card-pattern-grid, .card:hover .card-overlay-dots { opacity: 1; }
+.card:active { transform: translate(0.1em, 0.1em) scale(0.98); box-shadow: 0.5em 0.5em 0 var(--shadow-color); }
+.card::before { content: ""; position: absolute; top: -1em; right: -1em; width: 4em; height: 4em; background: var(--accent); transform: rotate(45deg); z-index: 1; }
+.card::after { content: "★"; position: absolute; top: 0.4em; right: 0.4em; color: var(--text); font-size: 1.2em; font-weight: bold; z-index: 2; }
+.card-pattern-grid { position: absolute; inset: 0; background-image: linear-gradient(to right, rgba(0,0,0,0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.05) 1px, transparent 1px); background-size: 0.5em 0.5em; pointer-events: none; opacity: 0.5; transition: opacity 0.4s ease; z-index: 1; }
+.card-overlay-dots { position: absolute; inset: 0; background-image: radial-gradient(var(--pattern-color) 1px, transparent 1px); background-size: 1em 1em; background-position: -0.5em -0.5em; pointer-events: none; opacity: 0; transition: opacity 0.4s ease; z-index: 1; }
+.bold-pattern { position: absolute; top: 0; right: 0; width: 6em; height: 6em; opacity: 0.15; pointer-events: none; z-index: 1; color: var(--text); }
+.card-title-area { position: relative; padding: 1em 1.2em; background: var(--primary); color: var(--text); font-weight: 800; font-size: 1.1em; display: flex; justify-content: space-between; align-items: center; border-bottom: 0.35em solid var(--text); text-transform: uppercase; letter-spacing: 0.05em; z-index: 2; overflow: hidden; font-family: 'Bebas Neue', system-ui, sans-serif; }
+.card-title-area::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: repeating-linear-gradient(45deg, rgba(0,0,0,0.1), rgba(0,0,0,0.1) 0.5em, transparent 0.5em, transparent 1em); pointer-events: none; opacity: 0.3; }
+.card-tag { background: var(--bg); color: var(--text); font-size: 0.65em; font-weight: 800; padding: 0.4em 0.8em; border: 0.15em solid var(--text); border-radius: 0.3em; box-shadow: 0.2em 0.2em 0 var(--shadow-color); text-transform: uppercase; letter-spacing: 0.1em; transform: rotate(3deg); transition: all 0.3s ease; }
+.card:hover .card-tag { transform: rotate(-2deg) scale(1.1); box-shadow: 0.25em 0.25em 0 var(--shadow-color); }
+.card-body { position: relative; padding: 1em 1.2em; z-index: 2; }
+.card-description { margin-bottom: 0.8em; color: var(--text); font-size: 0.8em; line-height: 1.4; font-weight: 600; font-family: 'JetBrains Mono', 'Courier New', monospace; word-break: break-all; }
+.feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6em; margin-bottom: 0.8em; }
+.feature-text { font-size: 0.8em; font-weight: 700; color: var(--text); }
+.card-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 0.8em; padding-top: 0.8em; border-top: 0.15em dashed rgba(0,0,0,0.15); position: relative; }
+.card-actions::before { content: "✂"; position: absolute; top: -0.8em; left: 50%; transform: translateX(-50%) rotate(90deg); background: var(--bg); padding: 0 0.5em; font-size: 1em; color: rgba(0,0,0,0.4); }
+.price { font-size: 2.2em; font-weight: 800; color: var(--text); font-family: 'Bebas Neue', system-ui, sans-serif; }
+.price-currency { font-size: 0.55em; font-weight: 700; vertical-align: baseline; margin-left: 0.1em; }
+.price-period { display: block; font-size: 0.55em; font-weight: 700; color: rgba(0,0,0,0.5); margin-top: 0.1em; }
+.card-button { position: relative; background: var(--secondary); color: white; font-size: 0.8em; font-weight: 700; padding: 0.7em 1.2em; border: 0.2em solid var(--text); border-radius: 0.4em; box-shadow: 0.3em 0.3em 0 var(--shadow-color); cursor: pointer; transition: all 0.2s ease; overflow: hidden; text-transform: uppercase; letter-spacing: 0.05em; font-family: 'Bebas Neue', system-ui, sans-serif; }
+.card-button::before { content: ""; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.2) 50%, transparent 100%); transition: left 0.6s ease; }
+.card-button:hover { background: var(--secondary-hover); color: var(--text); transform: translate(-0.1em, -0.1em); box-shadow: 0.4em 0.4em 0 var(--shadow-color); }
+.card-button:hover::before { left: 100%; }
+.card-button:active { transform: translate(0.1em, 0.1em); box-shadow: 0.15em 0.15em 0 var(--shadow-color); }
+.dots-pattern { position: absolute; bottom: 2em; left: -2em; width: 8em; height: 4em; opacity: 0.2; transform: rotate(-10deg); pointer-events: none; z-index: 1; color: var(--text); }
+.accent-shape { position: absolute; width: 2em; height: 2em; background: var(--secondary); border: 0.15em solid var(--text); border-radius: 0.3em; transform: rotate(45deg); bottom: -1em; right: 2em; z-index: 0; transition: transform 0.3s ease; }
+.card:hover .accent-shape { transform: rotate(55deg) scale(1.1); }
+.stamp { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: 0.1; z-index: 1; pointer-events: none; }
+.stamp-inner { width: 6em; height: 6em; display: flex; align-items: center; justify-content: center; border: 0.15em solid #0a0a0a; border-radius: 50%; transform: rotate(-15deg) translateY(-1.5em); }
+.stamp-text { font-size: 0.85em; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; }
+.stamp-text { font-size: 0.7em; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; }
+.corner-slice { position: absolute; bottom: 0; left: 0; width: 1.2em; height: 1.2em; background: var(--bg); border-right: 0.25em solid var(--text); border-top: 0.25em solid var(--text); border-radius: 0 0.5em 0 0; z-index: 1; }
+
+/* Faucet info card — pink OS style */
+.info-card {
+  width: 100%;
+  background: #fda4af;
+  border: 3px solid #000000;
+  box-shadow: 12px 12px 0 #000000;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.info-card:hover {
+  translate: -6px;
+}
+
+.info-head {
+  font-size: 14px;
+  font-weight: 900;
+  width: 100%;
+  background: #ffffff;
+  padding: 8px 14px;
+  color: #000000;
+  border-bottom: 3px solid #000000;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-family: 'Bebas Neue', system-ui, sans-serif;
+}
+
+.info-content {
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Faucet badge — animated letter boxes */
+.faucet-badge {
+  display: inline-flex;
+  border: 3px solid #000;
+  box-shadow: 4px 4px 0 #000;
+}
+
+.fbox {
+  width: 28px;
+  height: 34px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  background: #f8672d;
+  position: relative;
+  overflow: hidden;
+  border-right: 2px solid #000;
+  text-transform: uppercase;
+}
+.fbox:last-child { border-right: none; }
+
+.fbox::before {
+  content: attr(data-alt);
+  position: absolute;
+  top: 0;
+  background: #0f0f0f;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateY(100%);
+  transition: transform 0.4s;
+}
+
+.fbox:nth-child(even)::before { transform: translateY(-100%); }
+
+.faucet-badge:hover .fbox::before { transform: translateY(0); }
+
+/* Fancy connect button */
+.fancy {
+  background-color: transparent;
+  border: 2px solid #000;
+  border-radius: 0;
+  box-sizing: border-box;
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  margin: 0;
+  outline: none;
+  overflow: visible;
+  padding: 0.75em 1.5em;
+  position: relative;
+  text-align: center;
+  text-decoration: none;
+  text-transform: none;
+  transition: all 0.3s ease-in-out;
+  user-select: none;
+  font-size: 13px;
+}
+
+.fancy::before {
+  content: " ";
+  width: 1.5625rem;
+  height: 2px;
+  background: black;
+  top: 50%;
+  left: 1.5em;
+  position: absolute;
+  transform: translateY(-50%);
+  transform-origin: center;
+  transition: background 0.3s linear, width 0.3s linear;
+}
+
+.fancy .text {
+  font-size: 1em;
+  line-height: 1.33333em;
+  padding-left: 2em;
+  display: block;
+  text-align: left;
+  transition: all 0.3s ease-in-out;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: black;
+  font-family: 'Bebas Neue', system-ui, sans-serif;
+}
+
+.fancy .top-key {
+  height: 2px;
+  width: 1.5625rem;
+  top: -2px;
+  left: 0.625rem;
+  position: absolute;
+  background: #d1cfc7;
+  transition: width 0.5s ease-out, left 0.3s ease-out;
+}
+
+.fancy .bottom-key-1 {
+  height: 2px;
+  width: 1.5625rem;
+  right: 1.875rem;
+  bottom: -2px;
+  position: absolute;
+  background: #d1cfc7;
+  transition: width 0.5s ease-out, right 0.3s ease-out;
+}
+
+.fancy .bottom-key-2 {
+  height: 2px;
+  width: 0.625rem;
+  right: 0.625rem;
+  bottom: -2px;
+  position: absolute;
+  background: #d1cfc7;
+  transition: width 0.5s ease-out, right 0.3s ease-out;
+}
+
+.fancy:hover {
+  color: white;
+  background: var(--color-teal);
+}
+
+.fancy:hover::before {
+  width: 0.9375rem;
+  background: white;
+}
+
+.fancy:hover .text {
+  color: white;
+  padding-left: 1.5em;
+}
+
+.fancy:hover .top-key {
+  left: -2px;
+  width: 0px;
+}
+
+.fancy:hover .bottom-key-1,
+.fancy:hover .bottom-key-2 {
+  right: 0;
+  width: 0;
+}
+
+/* Disconnect variant */
+.fancy.disconnect {
+  background: var(--color-crack);
+}
+
+.fancy.disconnect .text {
+  color: white;
+}
+
+.fancy.disconnect:hover {
+  background: #c01010;
+}
+
+/* Faucet button — red variant */
+.fancy.faucet-btn {
+  padding: 0.6em 1em;
+  font-size: 11px;
+  background: var(--color-crack);
+}
+
+.fancy.faucet-btn .text {
+  color: #fff;
+  font-family: 'Bebas Neue', system-ui, sans-serif;
+  font-size: 1em;
+}
+
+.fancy.faucet-btn .top-key,
+.fancy.faucet-btn .bottom-key-1,
+.fancy.faucet-btn .bottom-key-2 {
+  background: #fca5a5;
+}
+
+.fancy.faucet-btn:hover {
+  background: #000;
+}
+
+.fancy.faucet-btn:hover::before {
+  background: #fff;
+}
+
+.fancy.faucet-btn:hover .text {
+  color: #fff;
+}
+
+/* Game-style button */
+.game-btn {
+  -moz-appearance: none;
+  -webkit-appearance: none;
+  appearance: none;
+  border: none;
+  background: none;
+  color: #0f1923;
+  cursor: pointer;
+  position: relative;
+  padding: 8px;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+  font-weight: bold;
+  font-size: 13px;
+  transition: all .15s ease;
+  display: inline-block;
+  text-decoration: none;
+}
+
+.game-btn::before,
+.game-btn::after {
+  content: '';
+  display: block;
+  position: absolute;
+  right: 0;
+  left: 0;
+  height: calc(50% - 5px);
+  border: 3px solid #0a0a0a;
+  transition: all .15s ease;
+}
+
+.game-btn::before { top: 0; border-bottom-width: 0; }
+.game-btn::after { bottom: 0; border-top-width: 0; }
+
+.game-btn:active::before,
+.game-btn:active::after { right: 3px; left: 3px; }
+.game-btn:active::before { top: 3px; }
+.game-btn:active::after { bottom: 3px; }
+
+.game-btn-inner {
+  position: relative;
+  display: block;
+  padding: 8px 16px;
+  color: #fff;
+  background-color: #0d9488;
+  overflow: hidden;
+}
+
+.game-btn-inner::before {
+  content: '';
+  display: block;
+  position: absolute;
+  top: 0; left: 0;
+  width: 2px; height: 2px;
+  background-color: inherit;
+}
+
+.game-btn-inner::after {
+  content: '';
+  display: block;
+  position: absolute;
+  right: 0; bottom: 0;
+  width: 4px; height: 4px;
+  background-color: inherit;
+  transition: all .2s ease;
+}
+
+.game-btn-slide {
+  display: block;
+  position: absolute;
+  top: 0; bottom: -1px;
+  left: -8px;
+  width: 0;
+  background-color: #f59e0b;
+  transform: skew(-15deg);
+  transition: all .2s ease;
+}
+
+.game-btn-text {
+  position: relative;
+  font-family: 'Bebas Neue', system-ui, sans-serif;
+  letter-spacing: 1px;
+}
+
+.game-btn:hover { color: #0f1923; }
+.game-btn:hover .game-btn-slide { width: calc(100% + 15px); }
+.game-btn:hover .game-btn-inner::after { background-color: #fff; }
+
+/* Tabs — neo-brutalist filter */
+.tabs {
+  --radius: 0px;
+  --border: 3px;
+  --height: 42px;
+  --speed: 0.25s;
+  height: var(--height);
+  display: inline-grid;
+  grid-auto-flow: column;
+  background: #0a0a0a;
+  grid-auto-columns: 1fr;
+  position: relative;
+  border: var(--border) solid #0a0a0a;
+  box-shadow: 5px 5px 0 #0a0a0a;
+}
+
+.tabs {
+  --ease: linear(0, 0.1641 3.52%, 0.311 7.18%, 0.4413 10.99%, 0.5553 14.96%, 0.6539 19.12%, 0.738 23.5%, 0.8086 28.15%, 0.8662 33.12%, 0.9078 37.92%, 0.9405 43.12%, 0.965 48.84%, 0.9821 55.28%, 0.992 61.97%, 0.9976 70.09%, 1);
+}
+
+.tabs > .input, .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border-width: 0; }
+.tabs:has(:checked:nth-of-type(1)) { --active: 0; }
+.tabs:has(:checked:nth-of-type(2)) { --active: 1; }
+.tabs:has(:checked:nth-of-type(3)) { --active: 2; }
+.tabs:has(:checked:nth-of-type(4)) { --active: 3; }
+.tabs :checked + .label { --highlight: 1; }
+.tabs:has(.input:nth-of-type(2)) { --count: 2; }
+.tabs:has(.input:nth-of-type(3)) { --count: 3; }
+.tabs:has(.input:nth-of-type(4)) { --count: 4; }
+
+.tabs .label {
+  padding: 0 16px;
+  cursor: pointer;
+  text-align: center;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  font-family: 'Bebas Neue', system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #888;
+  transition: color 0.25s ease;
+}
+
+.tabs :checked + .label {
+  color: #0a0a0a;
+}
+
+.tabs .input:not(:checked) + .label:hover {
+  color: #555;
+}
+
+.input:not(:checked) + .label:hover {
+  color: #0a0a0a;
+  background: #e8e1d9;
+}
+
+.tabs::after {
+  pointer-events: none;
+  content: "";
+  width: calc(100% / var(--count));
+  height: 100%;
+  background: var(--color-artel);
+  position: absolute;
+  mix-blend-mode: normal;
+  translate: calc(var(--active, 0) * 100%) 0;
+  transition: translate var(--speed) ease;
+  border-right: 3px solid #0a0a0a;
+  border-left: 3px solid #0a0a0a;
+}
