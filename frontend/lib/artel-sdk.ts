@@ -1,16 +1,20 @@
 import * as StellarSdk from "@stellar/stellar-sdk";
 
-export const NETWORK = "testnet";
-export const HORIZON_URL = "https://horizon-testnet.stellar.org";
-export const RPC_URL = "https://soroban-testnet.stellar.org";
-export const NETWORK_PASSPHRASE = "Test SDF Network ; September 2015";
+// Network config — override via NEXT_PUBLIC_* env vars
+// For Vercel: set these in Vercel dashboard → Environment Variables
+export const NETWORK = process.env.NEXT_PUBLIC_NETWORK || "testnet";
+export const HORIZON_URL = process.env.NEXT_PUBLIC_HORIZON_URL || "https://horizon-testnet.stellar.org";
+export const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || "https://soroban-testnet.stellar.org";
+export const NETWORK_PASSPHRASE = process.env.NEXT_PUBLIC_NETWORK_PASSPHRASE || "Test SDF Network ; September 2015";
 
+// Smart contract IDs — override via NEXT_PUBLIC_CONTRACT_* env vars
 export const CONTRACT_IDS = {
-  pool: "CBHNJGTYNQGLU25WVUMWW4KDB6XUMBTTP6LMAYCVOVFUX6AEHICADACU",
-  vault: "CDSHKMKFSTQVDDUB3C3USJUOM4MBBYNDF5FMHSLQTOVUMDNXZYZOEBBL",
+  pool: process.env.NEXT_PUBLIC_CONTRACT_POOL || "CBHNJGTYNQGLU25WVUMWW4KDB6XUMBTTP6LMAYCVOVFUX6AEHICADACU",
+  vault: process.env.NEXT_PUBLIC_CONTRACT_VAULT || "CDSHKMKFSTQVDDUB3C3USJUOM4MBBYNDF5FMHSLQTOVUMDNXZYZOEBBL",
 };
 
-export const XLM_CONTRACT = "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC";
+// XLM native token contract
+export const XLM_CONTRACT = process.env.NEXT_PUBLIC_XLM_CONTRACT || "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC";
 
 export interface ArisanConfig {
   name: string;
