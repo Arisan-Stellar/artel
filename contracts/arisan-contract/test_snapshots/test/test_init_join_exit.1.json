@@ -71,7 +71,7 @@
                         "symbol": "admin_fee_bps"
                       },
                       "val": {
-                        "u32": 50
+                        "u32": 0
                       }
                     },
                     {
@@ -562,7 +562,7 @@
                               "symbol": "admin_fee_bps"
                             },
                             "val": {
-                              "u32": 50
+                              "u32": 0
                             }
                           },
                           {

@@ -402,14 +402,10 @@ impl ArisanContract {
         let ct = contract_id(&env);
         transfer_from(&env, &pool.config.token, &member, &ct, contribution);
 
-        let fee = contribution.saturating_mul(pool.config.admin_fee_bps as i128) / 10000;
-        let net_deposit = contribution.saturating_sub(fee);
-
         info.total_contributed = info.total_contributed.saturating_add(contribution);
         info.deposited_this_round = true;
         info.last_deposit_round = pool.current_round;
-        pool.pool_funds_balance = pool.pool_funds_balance.saturating_add(net_deposit);
-        pool.yield_balance = pool.yield_balance.saturating_add(fee);
+        pool.pool_funds_balance = pool.pool_funds_balance.saturating_add(contribution);
 
         pool.members.set(member.clone(), info.clone());
         pool.active_depositors_count = pool.active_depositors_count.saturating_add(1);
@@ -882,7 +878,7 @@ mod test {
             round_duration: 30 * DAY,
             slash_grace_period: 20 * DAY,
             min_reputation: 0,
-            admin_fee_bps: 50,
+            admin_fee_bps: 0,
             early_points: 3,
             mid_points: 1,
             late_penalty: -2,
@@ -968,7 +964,7 @@ mod test {
         client.contribute(&pool_id, &m2);
 
         let pool2 = client.get_state(&pool_id);
-        assert_eq!(pool2.pool_funds_balance, 298_5000000);
+        assert_eq!(pool2.pool_funds_balance, 300_0000000);
 
         env.mock_all_auths();
         let winner = client.select_winner(&pool_id);
