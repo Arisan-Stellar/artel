@@ -29,3 +29,11 @@ export function getRequiredCollateralFromConfig(config: PoolConfigLike): number 
   );
   return collateralStroops / 10_000_000;
 }
+
+export function getContributionFromConfig(config: PoolConfigLike): number {
+  return Number(config.contribution_amount || 0) / 10_000_000;
+}
+
+export function getJoinCostFromConfig(config: PoolConfigLike): number {
+  return getRequiredCollateralFromConfig(config) + getContributionFromConfig(config);
+}

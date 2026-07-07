@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Sparkles, Shield, Trophy, Gift, Users, Clock, DollarSign, Layers, BarChart3, Share2, Check, Zap } from "lucide-react";
 import { CARD_CLASS, BTN_PRIMARY, BTN_ORANGE, BTN_SUCCESS, LABEL_MONO, HEADING_FONT, BarcodeStrip } from "@/components/dapp/ArtelHeader";
-import { getRequiredCollateralFromConfig, DEFAULT_COLLATERAL_MULTIPLIER } from "@/lib/poolMath";
+import { getRequiredCollateralFromConfig, getContributionFromConfig, getJoinCostFromConfig, DEFAULT_COLLATERAL_MULTIPLIER } from "@/lib/poolMath";
 import { useFreighterTx, scvAddress, scvU32 } from "@/hooks/useFreighterTx";
 import { CONTRACT_IDS } from "@/lib/artel-sdk";
 import { useWallet } from "@/hooks/WalletContext";
@@ -35,6 +35,7 @@ export default function PoolDetailPage() {
   const { address } = useWallet();
   const { loading, error, txHash, invokeContract } = useFreighterTx();
   const coll = config ? getRequiredCollateralFromConfig(config) : 0;
+  const joinCost = config ? getJoinCostFromConfig(config) : 0;
   const progressPct = pool.totalCycles > 0 ? Math.round((pool.cycle / pool.totalCycles) * 100) : 0;
 
   const loadPool = useCallback(async () => {
@@ -185,7 +186,7 @@ export default function PoolDetailPage() {
               </div></div>
 
               <div className="flex flex-wrap gap-3">
-                {canJoin && <button onClick={handleJoin} disabled={loading} className={BTN_ORANGE + " px-8 disabled:opacity-50"}>{loading ? "..." : `Join · ${coll} XLM`}</button>}
+                {canJoin && <button onClick={handleJoin} disabled={loading} className={BTN_ORANGE + " px-8 disabled:opacity-50"}>{loading ? "..." : `Join · ${joinCost} XLM (${coll} collateral + ${pool.deposit} iuran)`}</button>}
                 {canDeposit && <button onClick={handleDeposit} disabled={loading} className={BTN_PRIMARY + " px-8 disabled:opacity-50"}>{loading ? "..." : `Deposit ${pool.deposit} XLM`}</button>}
                 {canStart && <button onClick={handleStart} disabled={loading} className={BTN_SUCCESS + " px-6 disabled:opacity-50"}>{loading ? "..." : "Start Pool"}</button>}
                 {canSelect && <button onClick={handleSelect} disabled={loading} className={BTN_ORANGE + " px-6 disabled:opacity-50"}>{loading ? "..." : "Select Winner"}</button>}

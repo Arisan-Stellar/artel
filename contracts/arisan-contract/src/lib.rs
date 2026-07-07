@@ -223,25 +223,27 @@ impl ArisanContract {
         };
 
         let collateral = required_collateral(&pool.config);
+        let contribution = pool.config.contribution_amount;
         let ct = contract_id(&env);
-        transfer_from(&env, &pool.config.token, &admin, &ct, collateral);
+        transfer_from(&env, &pool.config.token, &admin, &ct, collateral.saturating_add(contribution));
 
         pool.collateral_balance = collateral;
+        pool.pool_funds_balance = contribution;
         let info = MemberInfo {
             address: admin.clone(),
             collateral_amount: collateral,
-            total_contributed: 0,
+            total_contributed: contribution,
             missed_payments: 0,
             has_won: false,
             is_active: true,
             joined_at: get_now(&env),
-            last_deposit_round: 0,
-            deposited_this_round: false,
-            early_payments: 0,
+            last_deposit_round: 1,
+            deposited_this_round: true,
+            early_payments: 1,
             mid_payments: 0,
             late_payments: 0,
-            total_points: 10,
-            current_streak: 0,
+            total_points: 10 + pool.config.early_points as i32,
+            current_streak: 1,
             yield_earned: 0,
             gacha_claimed: false,
             pending_winner_payout: 0,
@@ -277,27 +279,29 @@ impl ArisanContract {
         assert!((pool.member_list.len() as u32) < pool.config.max_members, "pool is full");
 
         let collateral = required_collateral(&pool.config);
+        let contribution = pool.config.contribution_amount;
         let ct = contract_id(&env);
 
-        transfer_from(&env, &pool.config.token, &member, &ct, collateral);
+        transfer_from(&env, &pool.config.token, &member, &ct, collateral.saturating_add(contribution));
 
         pool.collateral_balance = pool.collateral_balance.saturating_add(collateral);
+        pool.pool_funds_balance = pool.pool_funds_balance.saturating_add(contribution);
 
         let info = MemberInfo {
             address: member.clone(),
             collateral_amount: collateral,
-            total_contributed: 0,
+            total_contributed: contribution,
             missed_payments: 0,
             has_won: false,
             is_active: true,
             joined_at: get_now(&env),
-            last_deposit_round: 0,
-            deposited_this_round: false,
-            early_payments: 0,
+            last_deposit_round: 1,
+            deposited_this_round: true,
+            early_payments: 1,
             mid_payments: 0,
             late_payments: 0,
-            total_points: 10,
-            current_streak: 0,
+            total_points: 10 + pool.config.early_points as i32,
+            current_streak: 1,
             yield_earned: 0,
             gacha_claimed: false,
             pending_winner_payout: 0,
@@ -327,13 +331,16 @@ impl ArisanContract {
 
         assert!(pool.members.contains_key(member.clone()), "not a member");
         let info = pool.members.get(member.clone()).unwrap();
-        let refund = info.collateral_amount;
+        let collateral_refund = info.collateral_amount;
+        let deposit_refund = info.total_contributed;
+        let refund = collateral_refund.saturating_add(deposit_refund);
 
         let ct = contract_id(&env);
         transfer_from(&env, &pool.config.token, &ct, &member, refund);
 
         pool.members.remove(member.clone());
-        pool.collateral_balance = pool.collateral_balance.saturating_sub(refund);
+        pool.collateral_balance = pool.collateral_balance.saturating_sub(collateral_refund);
+        pool.pool_funds_balance = pool.pool_funds_balance.saturating_sub(deposit_refund);
 
         let mut new_list = Vec::new(&env);
         for m in pool.member_list.iter() {
@@ -361,7 +368,7 @@ impl ArisanContract {
         pool.current_round = 1;
         pool.round_start_time = get_now(&env);
         pool.pool_start_time = get_now(&env);
-        pool.active_depositors_count = 0;
+        pool.active_depositors_count = pool.member_list.len();
 
         save_pool(&env, pool_id, &pool);
         env.events().publish((symbol_short!("poolstart"), pool.current_round), pool.admin);
@@ -916,12 +923,14 @@ mod test {
 
         let pool2 = client.get_state(&pool_id);
         assert_eq!(pool2.member_count, 2);
+        assert_eq!(pool2.pool_funds_balance, config.contribution_amount * 2);
 
         env.mock_all_auths();
         client.exit(&pool_id, &m1);
         let pool3 = client.get_state(&pool_id);
         assert_eq!(pool3.member_count, 1);
         assert!(!pool3.is_full);
+        assert_eq!(pool3.pool_funds_balance, config.contribution_amount, "exit must refund cycle-1 deposit");
     }
 
     #[test]
@@ -949,19 +958,10 @@ mod test {
         assert!(pool.is_full);
         assert_eq!(pool.collateral_balance, required_collateral(&config) * 3);
         assert_eq!(pool.member_count, 3);
+        assert_eq!(pool.pool_funds_balance, 300_0000000, "cycle-1 pot funded at join");
 
         env.mock_all_auths();
         client.start_pool(&pool_id);
-
-        env.mock_all_auths();
-        mint_to(&env, &config.token, &admin, 200_0000000);
-        client.contribute(&pool_id, &admin);
-        env.mock_all_auths();
-        mint_to(&env, &config.token, &m1, 200_0000000);
-        client.contribute(&pool_id, &m1);
-        env.mock_all_auths();
-        mint_to(&env, &config.token, &m2, 200_0000000);
-        client.contribute(&pool_id, &m2);
 
         let pool2 = client.get_state(&pool_id);
         assert_eq!(pool2.pool_funds_balance, 300_0000000);
@@ -1017,20 +1017,29 @@ mod test {
         client.start_pool(&pool_id);
 
         env.mock_all_auths();
-        mint_to(&env, &config.token, &admin, 200_0000000);
-        client.contribute(&pool_id, &admin);
+        let winner1 = client.select_winner(&pool_id);
+
+        let mut payer: Option<Address> = None;
+        let mut defaulter: Option<Address> = None;
+        for m in [admin.clone(), m1.clone(), m2.clone()] {
+            if m == winner1 { continue; }
+            if payer.is_none() { payer = Some(m); } else { defaulter = Some(m); }
+        }
+        let payer = payer.unwrap();
+        let defaulter = defaulter.unwrap();
+
         env.mock_all_auths();
-        mint_to(&env, &config.token, &m1, 200_0000000);
-        client.contribute(&pool_id, &m1);
+        mint_to(&env, &config.token, &payer, 200_0000000);
+        client.contribute(&pool_id, &payer);
 
         env.ledger().set_timestamp(env.ledger().timestamp() + 21 * DAY);
 
-        let slashed = client.slash_collateral(&pool_id, &m2);
+        env.mock_all_auths();
+        let slashed = client.slash_collateral(&pool_id, &defaulter);
         assert_eq!(slashed, 100_0000000);
 
-        let info = client.get_member_info(&pool_id, &m2).unwrap();
+        let info = client.get_member_info(&pool_id, &defaulter).unwrap();
         assert_eq!(info.missed_payments, 1);
-        assert!(info.total_points < 10);
     }
 
     #[test]
@@ -1054,11 +1063,6 @@ mod test {
         env.mock_all_auths();
         client.start_pool(&pool_id);
 
-        for m in [&admin, &m1, &m2] {
-            env.mock_all_auths();
-            mint_to(&env, &config.token, m, 200_0000000);
-            client.contribute(&pool_id, m);
-        }
         env.mock_all_auths();
         let winner1 = client.select_winner(&pool_id);
 
@@ -1076,5 +1080,38 @@ mod test {
         let winner2 = client.select_winner(&pool_id);
         assert_ne!(winner2, winner1, "round 2 winner must differ from round 1 winner");
         assert_eq!(client.get_state(&pool_id).current_round, 3);
+    }
+
+    #[test]
+    fn test_all_in_join() {
+        let env = Env::default();
+        let (admin, vault, config) = setup(&env, 3);
+        let contract_id = env.register(ArisanContract, ());
+        let client = ArisanContractClient::new(&env, &contract_id);
+
+        env.mock_all_auths();
+        mint_to(&env, &config.token, &admin, 500_0000000);
+        let pool_id = client.create_pool(&admin, &vault, &config);
+
+        let admin_info = client.get_member_info(&pool_id, &admin).unwrap();
+        assert!(admin_info.deposited_this_round, "creator marked deposited for cycle 1");
+        assert_eq!(admin_info.total_contributed, config.contribution_amount);
+        assert_eq!(admin_info.early_payments, 1);
+
+        let s = client.get_state(&pool_id);
+        assert_eq!(s.pool_funds_balance, config.contribution_amount, "pot funded by creator cycle-1 deposit");
+        assert_eq!(s.collateral_balance, required_collateral(&config));
+
+        let m1 = Address::generate(&env);
+        env.mock_all_auths();
+        mint_to(&env, &config.token, &m1, 500_0000000);
+        client.join(&pool_id, &m1);
+
+        let s2 = client.get_state(&pool_id);
+        assert_eq!(s2.pool_funds_balance, config.contribution_amount * 2, "each join adds a cycle-1 deposit");
+        assert_eq!(s2.collateral_balance, required_collateral(&config) * 2);
+        let m1_info = client.get_member_info(&pool_id, &m1).unwrap();
+        assert!(m1_info.deposited_this_round);
+        assert_eq!(m1_info.early_payments, 1);
     }
 }
