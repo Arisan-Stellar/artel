@@ -45,7 +45,8 @@ export default function PoolDetailPage() {
   const { loading, error, txHash, invokeContract } = useFreighterTx();
   const coll = config ? getRequiredCollateralFromConfig(config) : 0;
   const joinCost = config ? getJoinCostFromConfig(config) : 0;
-  const progressPct = pool.totalCycles > 0 ? Math.round((pool.cycle / pool.totalCycles) * 100) : 0;
+  const displayedCycle = pool.state === "completed" ? pool.totalCycles : pool.cycle;
+  const progressPct = pool.totalCycles > 0 ? Math.round((displayedCycle / pool.totalCycles) * 100) : 0;
 
   const loadPool = useCallback(async () => {
     if (!id) return;
@@ -192,7 +193,7 @@ export default function PoolDetailPage() {
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                   <StatBox label="DEPOSIT" value={`${pool.deposit} XLM`} bg="bg-[#e0f4ff]" />
                   <StatBox label="MEMBERS" value={`${pool.members}/${pool.max}`} bg="bg-[#ccfbf1]" Icon={Users} />
-                  <StatBox label="CYCLE" value={`${pool.cycle}/${pool.totalCycles}`} bg="bg-[#fef9c3]" Icon={Clock} />
+                  <StatBox label="CYCLE" value={`${displayedCycle}/${pool.totalCycles}`} bg="bg-[#fef9c3]" Icon={Clock} />
                   <StatBox label="FUNDS" value={`${pool.deposit * pool.members} XLM`} bg="bg-[#e0f4ff]" Icon={DollarSign} />
                 </div>
                 {pool.state === "active" && <div className="mt-6"><div className="flex items-center justify-between mb-2"><span className="text-xs font-black uppercase tracking-[0.15em] text-[#333333]" style={LABEL_MONO}>Progress</span><span className="text-sm font-black" style={HEADING_FONT}>{progressPct}%</span></div><div className="h-4 w-full overflow-hidden border-[3px] border-[#0a0a0a] bg-[#e8e1d9]"><div className="h-full bg-[var(--color-sui)]" style={{ width: `${progressPct}%` }} /></div></div>}
