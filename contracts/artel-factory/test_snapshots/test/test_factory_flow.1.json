@@ -95,7 +95,24 @@
                       },
                       {
                         "key": {
-                          "symbol": "pool"
+                          "symbol": "pools"
+                        },
+                        "val": {
+                          "map": [
+                            {
+                              "key": {
+                                "u32": 0
+                              },
+                              "val": {
+                                "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHK3M"
+                              }
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "key": {
+                          "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHK3M"
                         },
                         "val": {
                           "map": [
@@ -156,23 +173,6 @@
                               },
                               "val": {
                                 "u32": 0
-                              }
-                            }
-                          ]
-                        }
-                      },
-                      {
-                        "key": {
-                          "symbol": "pools"
-                        },
-                        "val": {
-                          "map": [
-                            {
-                              "key": {
-                                "u32": 0
-                              },
-                              "val": {
-                                "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHK3M"
                               }
                             }
                           ]

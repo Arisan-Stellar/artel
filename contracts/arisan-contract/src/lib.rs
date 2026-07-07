@@ -4,7 +4,6 @@ use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, Address, E
 const DAY: u64 = 86400;
 const EARLY_WINDOW: u64 = DAY * 10;
 const MID_WINDOW: u64 = DAY * 20;
-const YIELD_VAULT_SHARE_BPS: i128 = 4000;
 
 #[rustfmt::skip]
 #[derive(Clone, Debug, PartialEq)]
@@ -49,6 +48,7 @@ pub struct MemberInfo {
     pub current_streak: u32,
     pub yield_earned: i128,
     pub gacha_claimed: bool,
+    pub pending_winner_payout: i128,
     pub winner_payout_claimed: bool,
 }
 
@@ -71,6 +71,7 @@ pub struct Pool {
     pub round_winners: Map<u32, Address>,
     pub collateral_balance: i128,
     pub pool_funds_balance: i128,
+    pub winner_payout_balance: i128,
     pub yield_balance: i128,
     pub collateral_yield_balance: i128,
     pub col_yield_dist: i128,
@@ -130,12 +131,23 @@ fn bump_entropy_counter(env: &Env) {
     env.storage().instance().set(&symbol_short!("n"), &n.wrapping_add(1));
 }
 
+fn unbiased_mod(seed: u64, modulus: u64) -> u64 {
+    if modulus <= 1 { return 0; }
+    let mask = (1u64 << (64 - modulus.leading_zeros())) - 1;
+    let mut state = seed;
+    loop {
+        let masked = state & mask;
+        if masked < modulus { return masked; }
+        state = state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+    }
+}
+
 fn weighted_random_index(env: &Env, weights: &Vec<u32>, salt: u64) -> u32 {
     let total: u32 = weights.iter().sum();
     if total == 0 { return 0; }
     let seed = derive_seed(env, salt);
     bump_entropy_counter(env);
-    let roll = seed % (total as u64);
+    let roll = unbiased_mod(seed, total as u64);
     let mut cumulative: u32 = 0;
     for (i, w) in weights.iter().enumerate() {
         cumulative = cumulative.saturating_add(w);
@@ -168,16 +180,26 @@ fn compute_tickets(info: &MemberInfo) -> u32 {
     1 + (base.saturating_mul(streak_multiplier) / 100)
 }
 
+fn load_pool(env: &Env, pool_id: u32) -> Pool {
+    env.storage().persistent().get(&(symbol_short!("pool"), pool_id)).unwrap()
+}
+
+fn save_pool(env: &Env, pool_id: u32, pool: &Pool) {
+    env.storage().persistent().set(&(symbol_short!("pool"), pool_id), pool);
+}
+
 #[contract]
 pub struct ArisanContract;
 
 #[contractimpl]
 impl ArisanContract {
-    pub fn init(env: Env, admin: Address, yield_vault: Address, config: ArisanConfig) {
+    pub fn create_pool(env: Env, admin: Address, yield_vault: Address, config: ArisanConfig) -> u32 {
         admin.require_auth();
         validate_config(&config);
 
-        let pool = Pool {
+        let pool_id: u32 = env.storage().instance().get(&symbol_short!("count")).unwrap_or(0);
+
+        let mut pool = Pool {
             config: config.clone(),
             admin: admin.clone(),
             yield_vault,
@@ -193,23 +215,62 @@ impl ArisanContract {
             round_winners: Map::new(&env),
             collateral_balance: 0,
             pool_funds_balance: 0,
+            winner_payout_balance: 0,
             yield_balance: 0,
             collateral_yield_balance: 0,
             col_yield_dist: 0,
             paused: false,
         };
 
+        let collateral = required_collateral(&pool.config);
+        let ct = contract_id(&env);
+        transfer_from(&env, &pool.config.token, &admin, &ct, collateral);
+
+        pool.collateral_balance = collateral;
+        let info = MemberInfo {
+            address: admin.clone(),
+            collateral_amount: collateral,
+            total_contributed: 0,
+            missed_payments: 0,
+            has_won: false,
+            is_active: true,
+            joined_at: get_now(&env),
+            last_deposit_round: 0,
+            deposited_this_round: false,
+            early_payments: 0,
+            mid_payments: 0,
+            late_payments: 0,
+            total_points: 10,
+            current_streak: 0,
+            yield_earned: 0,
+            gacha_claimed: false,
+            pending_winner_payout: 0,
+            winner_payout_claimed: false,
+        };
+        pool.members.set(admin.clone(), info);
+        pool.member_list.push_back(admin.clone());
+        pool.active_depositors_count = 1;
+        if pool.member_list.len() == pool.config.max_members {
+            pool.is_full = true;
+        }
+
+        save_pool(&env, pool_id, &pool);
+        env.storage().instance().set(&symbol_short!("count"), &(pool_id + 1));
         env.storage().instance().set(&symbol_short!("n"), &0u64);
-        env.storage().persistent().set(&symbol_short!("pool"), &pool);
-        env.events().publish((symbol_short!("init"),), admin);
+        env.events().publish((symbol_short!("poolnew"), pool_id), admin);
+        pool_id
+    }
+
+    pub fn get_pool_count(env: Env) -> u32 {
+        env.storage().instance().get(&symbol_short!("count")).unwrap_or(0)
     }
 
     // -----------------------------------------------------------------------
     // JOIN — member deposits collateral + transfers tokens to contract
     // -----------------------------------------------------------------------
-    pub fn join(env: Env, member: Address) -> Result<MemberInfo, soroban_sdk::Error> {
+    pub fn join(env: Env, pool_id: u32, member: Address) -> Result<MemberInfo, soroban_sdk::Error> {
         member.require_auth();
-        let mut pool: Pool = env.storage().persistent().get(&symbol_short!("pool")).unwrap();
+        let mut pool: Pool = load_pool(&env, pool_id);
         assert!(!pool.paused, "pool is paused");
         assert_eq!(pool.state, ArisanState::Pending, "pool not accepting members");
         assert!(!pool.members.contains_key(member.clone()), "already a member");
@@ -239,6 +300,7 @@ impl ArisanContract {
             current_streak: 0,
             yield_earned: 0,
             gacha_claimed: false,
+            pending_winner_payout: 0,
             winner_payout_claimed: false,
         };
 
@@ -250,7 +312,7 @@ impl ArisanContract {
             pool.is_full = true;
         }
 
-        env.storage().persistent().set(&symbol_short!("pool"), &pool);
+        save_pool(&env, pool_id, &pool);
         env.events().publish((symbol_short!("memjoin"), collateral), member);
         Ok(info)
     }
@@ -258,11 +320,12 @@ impl ArisanContract {
     // -----------------------------------------------------------------------
     // EXIT — leave pool before it starts (returns collateral)
     // -----------------------------------------------------------------------
-    pub fn exit(env: Env, member: Address) -> Result<i128, soroban_sdk::Error> {
+    pub fn exit(env: Env, pool_id: u32, member: Address) -> Result<i128, soroban_sdk::Error> {
         member.require_auth();
-        let mut pool: Pool = env.storage().persistent().get(&symbol_short!("pool")).unwrap();
+        let mut pool: Pool = load_pool(&env, pool_id);
         assert_eq!(pool.state, ArisanState::Pending, "can only exit before pool starts");
 
+        assert!(pool.members.contains_key(member.clone()), "not a member");
         let info = pool.members.get(member.clone()).unwrap();
         let refund = info.collateral_amount;
 
@@ -280,7 +343,7 @@ impl ArisanContract {
         pool.active_depositors_count = pool.member_list.len();
         pool.is_full = pool.member_list.len() == pool.config.max_members as u32;
 
-        env.storage().persistent().set(&symbol_short!("pool"), &pool);
+        save_pool(&env, pool_id, &pool);
         env.events().publish((symbol_short!("memexit"), refund), member);
         Ok(refund)
     }
@@ -288,8 +351,8 @@ impl ArisanContract {
     // -----------------------------------------------------------------------
     // START — admin starts the pool
     // -----------------------------------------------------------------------
-    pub fn start_pool(env: Env) {
-        let mut pool: Pool = env.storage().persistent().get(&symbol_short!("pool")).unwrap();
+    pub fn start_pool(env: Env, pool_id: u32) {
+        let mut pool: Pool = load_pool(&env, pool_id);
         pool.admin.require_auth();
         assert!(pool.is_full, "pool not full");
         assert_eq!(pool.state, ArisanState::Pending, "already started");
@@ -298,21 +361,22 @@ impl ArisanContract {
         pool.current_round = 1;
         pool.round_start_time = get_now(&env);
         pool.pool_start_time = get_now(&env);
-        pool.active_depositors_count = pool.member_list.len();
+        pool.active_depositors_count = 0;
 
-        env.storage().persistent().set(&symbol_short!("pool"), &pool);
+        save_pool(&env, pool_id, &pool);
         env.events().publish((symbol_short!("poolstart"), pool.current_round), pool.admin);
     }
 
     // -----------------------------------------------------------------------
     // CONTRIBUTE — pay monthly dues + earn points based on timing
     // -----------------------------------------------------------------------
-    pub fn contribute(env: Env, member: Address) -> Result<MemberInfo, soroban_sdk::Error> {
+    pub fn contribute(env: Env, pool_id: u32, member: Address) -> Result<MemberInfo, soroban_sdk::Error> {
         member.require_auth();
-        let mut pool: Pool = env.storage().persistent().get(&symbol_short!("pool")).unwrap();
+        let mut pool: Pool = load_pool(&env, pool_id);
         assert!(!pool.paused, "pool is paused");
         assert_eq!(pool.state, ArisanState::Active, "pool not active");
 
+        assert!(pool.members.contains_key(member.clone()), "not a member");
         let mut info = pool.members.get(member.clone()).unwrap();
         assert!(info.is_active, "member is not active");
         assert!(!info.has_won, "winner cannot contribute again");
@@ -338,13 +402,19 @@ impl ArisanContract {
         let ct = contract_id(&env);
         transfer_from(&env, &pool.config.token, &member, &ct, contribution);
 
+        let fee = contribution.saturating_mul(pool.config.admin_fee_bps as i128) / 10000;
+        let net_deposit = contribution.saturating_sub(fee);
+
         info.total_contributed = info.total_contributed.saturating_add(contribution);
         info.deposited_this_round = true;
         info.last_deposit_round = pool.current_round;
-        pool.pool_funds_balance = pool.pool_funds_balance.saturating_add(contribution);
+        pool.pool_funds_balance = pool.pool_funds_balance.saturating_add(net_deposit);
+        pool.yield_balance = pool.yield_balance.saturating_add(fee);
+
+        pool.members.set(member.clone(), info.clone());
         pool.active_depositors_count = pool.active_depositors_count.saturating_add(1);
 
-        env.storage().persistent().set(&symbol_short!("pool"), &pool);
+        save_pool(&env, pool_id, &pool);
         env.events().publish((symbol_short!("contrib"), contribution), member.clone());
         Ok(info)
     }
@@ -352,8 +422,8 @@ impl ArisanContract {
     // -----------------------------------------------------------------------
     // SLASH — admin-only: slash defaulter's collateral after grace period
     // -----------------------------------------------------------------------
-    pub fn slash_collateral(env: Env, defaulter: Address) -> Result<i128, soroban_sdk::Error> {
-        let mut pool: Pool = env.storage().persistent().get(&symbol_short!("pool")).unwrap();
+    pub fn slash_collateral(env: Env, pool_id: u32, defaulter: Address) -> Result<i128, soroban_sdk::Error> {
+        let mut pool: Pool = load_pool(&env, pool_id);
         pool.admin.require_auth();
         assert_eq!(pool.state, ArisanState::Active, "pool not active");
 
@@ -380,13 +450,12 @@ impl ArisanContract {
             pool.yield_balance = pool.yield_balance.saturating_add(slash_amount);
             info.collateral_amount = 0;
             info.is_active = false;
-            pool.active_depositors_count = pool.active_depositors_count.saturating_sub(1);
         }
 
         pool.collateral_balance = pool.collateral_balance.saturating_sub(slash_amount);
         pool.members.set(defaulter.clone(), info);
 
-        env.storage().persistent().set(&symbol_short!("pool"), &pool);
+        save_pool(&env, pool_id, &pool);
         if slash_amount > 0 {
             env.events().publish((symbol_short!("slashed"), slash_amount), defaulter);
         }
@@ -396,14 +465,14 @@ impl ArisanContract {
     // -----------------------------------------------------------------------
     // SELECT WINNER — all deposited? pick random winner + transfer pool
     // -----------------------------------------------------------------------
-    pub fn select_winner(env: Env) -> Result<Address, soroban_sdk::Error> {
-        let mut pool: Pool = env.storage().persistent().get(&symbol_short!("pool")).unwrap();
+    pub fn select_winner(env: Env, pool_id: u32) -> Result<Address, soroban_sdk::Error> {
+        let mut pool: Pool = load_pool(&env, pool_id);
         pool.admin.require_auth();
         assert_eq!(pool.state, ArisanState::Active, "pool not active");
 
         let expected = pool.member_list.iter()
             .filter(|a| {
-                pool.members.get(a.clone()).map(|m| m.is_active).unwrap_or(false)
+                pool.members.get(a.clone()).map(|m| m.is_active && !m.has_won).unwrap_or(false)
             })
             .count() as u32;
         assert!(pool.active_depositors_count >= expected,
@@ -426,17 +495,16 @@ impl ArisanContract {
         let payout = pool.pool_funds_balance;
         pool.pool_funds_balance = 0;
 
-        let ct = contract_id(&env);
-        transfer_from(&env, &pool.config.token, &ct, &winner, payout);
+        pool.winner_payout_balance = pool.winner_payout_balance.saturating_add(payout);
 
         let mut winfo = pool.members.get(winner.clone()).unwrap();
         winfo.has_won = true;
+        winfo.pending_winner_payout = winfo.pending_winner_payout.saturating_add(payout);
         pool.members.set(winner.clone(), winfo);
 
         pool.round_winners.set(pool.current_round, winner.clone());
         pool.current_round = pool.current_round.saturating_add(1);
         pool.round_start_time = get_now(&env);
-        pool.active_depositors_count = 0;
 
         for maddr in members.iter() {
             if pool.members.contains_key(maddr.clone()) {
@@ -445,21 +513,49 @@ impl ArisanContract {
                 pool.members.set(maddr, mi);
             }
         }
+        pool.active_depositors_count = 0;
 
         if pool.current_round >= pool.total_rounds {
             pool.state = ArisanState::Completed;
         }
 
-        env.storage().persistent().set(&symbol_short!("pool"), &pool);
+        save_pool(&env, pool_id, &pool);
         env.events().publish((symbol_short!("winsel"), payout), winner.clone());
         Ok(winner)
     }
 
     // -----------------------------------------------------------------------
+    // CLAIM WINNER PAYOUT — pull-based: only winner can withdraw their escrowed payout
+    // -----------------------------------------------------------------------
+    pub fn claim_winner_payout(env: Env, pool_id: u32, member: Address) -> Result<i128, soroban_sdk::Error> {
+        member.require_auth();
+        let mut pool: Pool = load_pool(&env, pool_id);
+
+        let mut info = pool.members.get(member.clone()).unwrap();
+        assert!(info.pending_winner_payout > 0, "no pending payout");
+        assert!(!info.winner_payout_claimed, "payout already claimed");
+
+        let amount = info.pending_winner_payout;
+        assert!(pool.winner_payout_balance >= amount, "insufficient escrow balance");
+
+        pool.winner_payout_balance = pool.winner_payout_balance.saturating_sub(amount);
+        info.pending_winner_payout = 0;
+        info.winner_payout_claimed = true;
+        pool.members.set(member.clone(), info);
+
+        let ct = contract_id(&env);
+        transfer_from(&env, &pool.config.token, &ct, &member, amount);
+
+        save_pool(&env, pool_id, &pool);
+        env.events().publish((symbol_short!("winclaim"), amount), member.clone());
+        Ok(amount)
+    }
+
+    // -----------------------------------------------------------------------
     // DISTRIBUTE COLLATERAL YIELD — 10% ops / 50% members / 40% vault
     // -----------------------------------------------------------------------
-    pub fn distribute_collateral_yield(env: Env) -> Result<YieldDistribution, soroban_sdk::Error> {
-        let mut pool: Pool = env.storage().persistent().get(&symbol_short!("pool")).unwrap();
+    pub fn distribute_collateral_yield(env: Env, pool_id: u32) -> Result<YieldDistribution, soroban_sdk::Error> {
+        let mut pool: Pool = load_pool(&env, pool_id);
         pool.admin.require_auth();
 
         let balance_before = pool.collateral_yield_balance;
@@ -487,6 +583,12 @@ impl ArisanContract {
             }
         }
 
+        // Transfer 40% vault share to yield-vault contract
+        if vault > 0 {
+            let ct = contract_id(&env);
+            transfer_from(&env, &pool.config.token, &ct, &pool.yield_vault, vault);
+        }
+
         pool.collateral_yield_balance = pool.collateral_balance;
         pool.col_yield_dist = pool.col_yield_dist.saturating_add(total_yield);
 
@@ -497,7 +599,7 @@ impl ArisanContract {
             per_member_share: per_member_final,
         };
 
-        env.storage().persistent().set(&symbol_short!("pool"), &pool);
+        save_pool(&env, pool_id, &pool);
         env.events().publish((symbol_short!("colyield"), total_yield), dist.clone());
         Ok(dist)
     }
@@ -505,8 +607,8 @@ impl ArisanContract {
     // -----------------------------------------------------------------------
     // GACHA POOL YIELD — weighted lottery at pool end, fixed runner-up dedup
     // -----------------------------------------------------------------------
-    pub fn disburse_pool_yield_gacha(env: Env) -> Result<Vec<GachaWinner>, soroban_sdk::Error> {
-        let mut pool: Pool = env.storage().persistent().get(&symbol_short!("pool")).unwrap();
+    pub fn disburse_pool_yield_gacha(env: Env, pool_id: u32) -> Result<Vec<GachaWinner>, soroban_sdk::Error> {
+        let mut pool: Pool = load_pool(&env, pool_id);
         assert_eq!(pool.state, ArisanState::Completed, "pool not completed");
 
         let total_yield = pool.yield_balance;
@@ -535,7 +637,7 @@ impl ArisanContract {
         let mut winners: Vec<GachaWinner> = Vec::new(&env);
         if participants.is_empty() {
             pool.yield_balance = 0;
-            env.storage().persistent().set(&symbol_short!("pool"), &pool);
+            save_pool(&env, pool_id, &pool);
             return Ok(winners);
         }
 
@@ -607,7 +709,7 @@ impl ArisanContract {
         }
 
         pool.yield_balance = 0;
-        env.storage().persistent().set(&symbol_short!("pool"), &pool);
+        save_pool(&env, pool_id, &pool);
         env.events().publish((symbol_short!("gachadone"), total_yield), ());
         Ok(winners)
     }
@@ -615,11 +717,12 @@ impl ArisanContract {
     // -----------------------------------------------------------------------
     // CLAIM FINAL — return collateral + proportional yield after pool ends
     // -----------------------------------------------------------------------
-    pub fn claim_final(env: Env, member: Address) -> Result<(i128, i128), soroban_sdk::Error> {
+    pub fn claim_final(env: Env, pool_id: u32, member: Address) -> Result<(i128, i128), soroban_sdk::Error> {
         member.require_auth();
-        let mut pool: Pool = env.storage().persistent().get(&symbol_short!("pool")).unwrap();
+        let mut pool: Pool = load_pool(&env, pool_id);
         assert_eq!(pool.state, ArisanState::Completed, "pool not completed");
 
+        assert!(pool.members.contains_key(member.clone()), "not a member");
         let mut info = pool.members.get(member.clone()).unwrap();
         assert!(info.is_active, "member not active");
         assert!(!info.gacha_claimed, "already claimed");
@@ -637,43 +740,43 @@ impl ArisanContract {
         pool.collateral_balance = pool.collateral_balance.saturating_sub(collateral_return);
 
         pool.members.set(member.clone(), info);
-        env.storage().persistent().set(&symbol_short!("pool"), &pool);
+        save_pool(&env, pool_id, &pool);
         env.events().publish((symbol_short!("finclaim"), total), member);
         Ok((collateral_return, yield_return))
     }
 
     // ---- ADMIN CONTROLS ----
 
-    pub fn deposit_yield(env: Env, from_admin: Address, amount: i128) {
-        let mut pool: Pool = env.storage().persistent().get(&symbol_short!("pool")).unwrap();
+    pub fn deposit_yield(env: Env, pool_id: u32, from_admin: Address, amount: i128) {
+        let mut pool: Pool = load_pool(&env, pool_id);
         pool.admin.require_auth();
         let ct = contract_id(&env);
         transfer_from(&env, &pool.config.token, &from_admin, &ct, amount);
         pool.yield_balance = pool.yield_balance.saturating_add(amount);
-        env.storage().persistent().set(&symbol_short!("pool"), &pool);
+        save_pool(&env, pool_id, &pool);
         env.events().publish((symbol_short!("yldep"), amount), from_admin);
     }
 
-    pub fn pause(env: Env) {
-        let mut pool: Pool = env.storage().persistent().get(&symbol_short!("pool")).unwrap();
+    pub fn pause(env: Env, pool_id: u32) {
+        let mut pool: Pool = load_pool(&env, pool_id);
         pool.admin.require_auth();
         pool.paused = true;
-        env.storage().persistent().set(&symbol_short!("pool"), &pool);
+        save_pool(&env, pool_id, &pool);
         env.events().publish((symbol_short!("paused"),), pool.admin);
     }
 
-    pub fn unpause(env: Env) {
-        let mut pool: Pool = env.storage().persistent().get(&symbol_short!("pool")).unwrap();
+    pub fn unpause(env: Env, pool_id: u32) {
+        let mut pool: Pool = load_pool(&env, pool_id);
         pool.admin.require_auth();
         pool.paused = false;
-        env.storage().persistent().set(&symbol_short!("pool"), &pool);
+        save_pool(&env, pool_id, &pool);
         env.events().publish((symbol_short!("unpaused"),), pool.admin);
     }
 
     // ---- VIEWS ----
 
-    pub fn get_state(env: Env) -> PoolSummary {
-        let pool: Pool = env.storage().persistent().get(&symbol_short!("pool")).unwrap();
+    pub fn get_state(env: Env, pool_id: u32) -> PoolSummary {
+        let pool: Pool = load_pool(&env, pool_id);
         PoolSummary {
             state: pool.state.clone(),
             current_round: pool.current_round,
@@ -689,21 +792,26 @@ impl ArisanContract {
         }
     }
 
-    pub fn get_member_info(env: Env, member: Address) -> Option<MemberInfo> {
-        let pool: Pool = env.storage().persistent().get(&symbol_short!("pool")).unwrap();
+    pub fn get_config(env: Env, pool_id: u32) -> ArisanConfig {
+        let pool: Pool = load_pool(&env, pool_id);
+        pool.config
+    }
+
+    pub fn get_member_info(env: Env, pool_id: u32, member: Address) -> Option<MemberInfo> {
+        let pool: Pool = load_pool(&env, pool_id);
         pool.members.get(member)
     }
 
-    pub fn get_tickets(env: Env, member: Address) -> u32 {
-        let pool: Pool = env.storage().persistent().get(&symbol_short!("pool")).unwrap();
+    pub fn get_tickets(env: Env, pool_id: u32, member: Address) -> u32 {
+        let pool: Pool = load_pool(&env, pool_id);
         if let Some(info) = pool.members.get(member) {
             if info.is_active { return compute_tickets(&info); }
         }
         0
     }
 
-    pub fn get_leaderboard(env: Env) -> Vec<(Address, u32)> {
-        let pool: Pool = env.storage().persistent().get(&symbol_short!("pool")).unwrap();
+    pub fn get_leaderboard(env: Env, pool_id: u32) -> Vec<(Address, u32)> {
+        let pool: Pool = load_pool(&env, pool_id);
         let mut result = Vec::new(&env);
         for maddr in pool.member_list.iter() {
             if let Some(info) = pool.members.get(maddr.clone()) {
@@ -711,6 +819,16 @@ impl ArisanContract {
             }
         }
         result
+    }
+
+    pub fn get_admin(env: Env, pool_id: u32) -> Address {
+        let pool: Pool = load_pool(&env, pool_id);
+        pool.admin
+    }
+
+    pub fn get_round_winner(env: Env, pool_id: u32, round: u32) -> Option<Address> {
+        let pool: Pool = load_pool(&env, pool_id);
+        pool.round_winners.get(round)
     }
 }
 
@@ -789,21 +907,25 @@ mod test {
         let client = ArisanContractClient::new(&env, &contract_id);
 
         env.mock_all_auths();
-        client.init(&admin, &vault, &config);
+        mint_to(&env, &config.token, &admin, 500_0000000);
+        let pool_id = client.create_pool(&admin, &vault, &config);
+
+        let pool = client.get_state(&pool_id);
+        assert_eq!(pool.member_count, 1);
 
         let m1 = Address::generate(&env);
         env.mock_all_auths();
         mint_to(&env, &config.token, &m1, 500_0000000);
-        client.join(&m1);
+        client.join(&pool_id, &m1);
 
-        let pool = client.get_state();
-        assert_eq!(pool.member_count, 1);
+        let pool2 = client.get_state(&pool_id);
+        assert_eq!(pool2.member_count, 2);
 
         env.mock_all_auths();
-        client.exit(&m1);
-        let pool2 = client.get_state();
-        assert_eq!(pool2.member_count, 0);
-        assert!(!pool2.is_full);
+        client.exit(&pool_id, &m1);
+        let pool3 = client.get_state(&pool_id);
+        assert_eq!(pool3.member_count, 1);
+        assert!(!pool3.is_full);
     }
 
     #[test]
@@ -814,48 +936,45 @@ mod test {
         let contract_id = env.register(ArisanContract, ());
         let client = ArisanContractClient::new(&env, &contract_id);
         env.mock_all_auths();
-        client.init(&admin, &vault, &config);
+        mint_to(&env, &config.token, &admin, 500_0000000);
+        let pool_id = client.create_pool(&admin, &vault, &config);
 
         let m1 = Address::generate(&env);
         let m2 = Address::generate(&env);
-        let m3 = Address::generate(&env);
 
         env.mock_all_auths();
         mint_to(&env, &config.token, &m1, 500_0000000);
-        client.join(&m1);
+        client.join(&pool_id, &m1);
         env.mock_all_auths();
         mint_to(&env, &config.token, &m2, 500_0000000);
-        client.join(&m2);
-        env.mock_all_auths();
-        mint_to(&env, &config.token, &m3, 500_0000000);
-        client.join(&m3);
+        client.join(&pool_id, &m2);
 
-        let pool = client.get_state();
+        let pool = client.get_state(&pool_id);
         assert!(pool.is_full);
         assert_eq!(pool.collateral_balance, required_collateral(&config) * 3);
         assert_eq!(pool.member_count, 3);
 
         env.mock_all_auths();
-        client.start_pool();
+        client.start_pool(&pool_id);
 
+        env.mock_all_auths();
+        mint_to(&env, &config.token, &admin, 200_0000000);
+        client.contribute(&pool_id, &admin);
         env.mock_all_auths();
         mint_to(&env, &config.token, &m1, 200_0000000);
-        client.contribute(&m1);
+        client.contribute(&pool_id, &m1);
         env.mock_all_auths();
         mint_to(&env, &config.token, &m2, 200_0000000);
-        client.contribute(&m2);
-        env.mock_all_auths();
-        mint_to(&env, &config.token, &m3, 200_0000000);
-        client.contribute(&m3);
+        client.contribute(&pool_id, &m2);
 
-        let pool2 = client.get_state();
-        assert_eq!(pool2.pool_funds_balance, 300_0000000);
+        let pool2 = client.get_state(&pool_id);
+        assert_eq!(pool2.pool_funds_balance, 298_5000000);
 
         env.mock_all_auths();
-        let winner = client.select_winner();
+        let winner = client.select_winner(&pool_id);
         assert_ne!(winner, Address::generate(&env));
 
-        let pool3 = client.get_state();
+        let pool3 = client.get_state(&pool_id);
         assert_eq!(pool3.current_round, 2);
         assert_eq!(pool3.pool_funds_balance, 0);
     }
@@ -870,6 +989,7 @@ mod test {
             early_payments: 5, mid_payments: 0, late_payments: 0,
             total_points: 0, current_streak: 6,
             yield_earned: 0, gacha_claimed: false,
+            pending_winner_payout: 0,
             winner_payout_claimed: false,
         };
         let tickets = compute_tickets(&info);
@@ -885,38 +1005,80 @@ mod test {
         let contract_id = env.register(ArisanContract, ());
         let client = ArisanContractClient::new(&env, &contract_id);
         env.mock_all_auths();
-        client.init(&admin, &vault, &config);
+        mint_to(&env, &config.token, &admin, 500_0000000);
+        let pool_id = client.create_pool(&admin, &vault, &config);
 
         let m1 = Address::generate(&env);
         let m2 = Address::generate(&env);
-        let m3 = Address::generate(&env);
 
         env.mock_all_auths();
         mint_to(&env, &config.token, &m1, 500_0000000);
-        client.join(&m1);
+        client.join(&pool_id, &m1);
         env.mock_all_auths();
         mint_to(&env, &config.token, &m2, 500_0000000);
-        client.join(&m2);
+        client.join(&pool_id, &m2);
         env.mock_all_auths();
-        mint_to(&env, &config.token, &m3, 500_0000000);
-        client.join(&m3);
-        env.mock_all_auths();
-        client.start_pool();
+        client.start_pool(&pool_id);
 
         env.mock_all_auths();
-        mint_to(&env, &config.token, &m1, 200_0000000);
-        client.contribute(&m1);
+        mint_to(&env, &config.token, &admin, 200_0000000);
+        client.contribute(&pool_id, &admin);
         env.mock_all_auths();
-        mint_to(&env, &config.token, &m2, 200_0000000);
-        client.contribute(&m2);
+        mint_to(&env, &config.token, &m1, 200_0000000);
+        client.contribute(&pool_id, &m1);
 
         env.ledger().set_timestamp(env.ledger().timestamp() + 21 * DAY);
 
-        let slashed = client.slash_collateral(&m3);
+        let slashed = client.slash_collateral(&pool_id, &m2);
         assert_eq!(slashed, 100_0000000);
 
-        let info = client.get_member_info(&m3).unwrap();
+        let info = client.get_member_info(&pool_id, &m2).unwrap();
         assert_eq!(info.missed_payments, 1);
         assert!(info.total_points < 10);
+    }
+
+    #[test]
+    fn test_two_rounds_no_deadlock() {
+        let env = Env::default();
+        let (admin, vault, config) = setup(&env, 3);
+        let contract_id = env.register(ArisanContract, ());
+        let client = ArisanContractClient::new(&env, &contract_id);
+
+        env.mock_all_auths();
+        mint_to(&env, &config.token, &admin, 500_0000000);
+        let pool_id = client.create_pool(&admin, &vault, &config);
+        let m1 = Address::generate(&env);
+        let m2 = Address::generate(&env);
+        env.mock_all_auths();
+        mint_to(&env, &config.token, &m1, 500_0000000);
+        client.join(&pool_id, &m1);
+        env.mock_all_auths();
+        mint_to(&env, &config.token, &m2, 500_0000000);
+        client.join(&pool_id, &m2);
+        env.mock_all_auths();
+        client.start_pool(&pool_id);
+
+        for m in [&admin, &m1, &m2] {
+            env.mock_all_auths();
+            mint_to(&env, &config.token, m, 200_0000000);
+            client.contribute(&pool_id, m);
+        }
+        env.mock_all_auths();
+        let winner1 = client.select_winner(&pool_id);
+
+        let state = client.get_state(&pool_id);
+        assert_eq!(state.current_round, 2);
+        assert_eq!(state.active_depositors_count, 0, "count must reset for the new round");
+
+        for m in [&admin, &m1, &m2] {
+            if m.clone() == winner1 { continue; }
+            env.mock_all_auths();
+            mint_to(&env, &config.token, m, 200_0000000);
+            client.contribute(&pool_id, m);
+        }
+        env.mock_all_auths();
+        let winner2 = client.select_winner(&pool_id);
+        assert_ne!(winner2, winner1, "round 2 winner must differ from round 1 winner");
+        assert_eq!(client.get_state(&pool_id).current_round, 3);
     }
 }

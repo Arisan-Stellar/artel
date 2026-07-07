@@ -10,7 +10,6 @@ export async function POST(request: Request) {
     const res = await fetch(`https://friendbot.stellar.org/?addr=${address}`);
     const data = await res.json();
 
-    // Friendbot returns 400 if already funded — that's OK
     if (data.successful === true) {
       return NextResponse.json({ success: true, address, amount: "10,000 XLM", txHash: data.hash });
     }

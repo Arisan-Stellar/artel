@@ -1,26 +1,23 @@
 "use client";
 
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Sparkles, Shield, Trophy, Gift, Users, Clock, DollarSign, Layers, BarChart3, Share2, Check, Zap } from "lucide-react";
 import { CARD_CLASS, BTN_PRIMARY, BTN_ORANGE, BTN_SUCCESS, LABEL_MONO, HEADING_FONT, BarcodeStrip } from "@/components/dapp/ArtelHeader";
-import { getRequiredCollateralAmount, DEFAULT_COLLATERAL_MULTIPLIER } from "@/lib/poolMath";
-import { useFreighterTx, scvAddress } from "@/hooks/useFreighterTx";
+import { getRequiredCollateralFromConfig, DEFAULT_COLLATERAL_MULTIPLIER } from "@/lib/poolMath";
+import { useFreighterTx, scvAddress, scvU32 } from "@/hooks/useFreighterTx";
+import { CONTRACT_IDS } from "@/lib/artel-sdk";
+import { useWallet } from "@/hooks/WalletContext";
 
 interface Participant { addr: string; collateral: number; paid: boolean; streak: number; tickets: number; won: boolean }
 type LifecycleState = "open" | "ready" | "active" | "completed";
 
-const MOCK: Record<string, any> = {
-  "CD5JAD6VAMI2IR7IKNAX42AL4MFBAZM6ZYE6XBDC6AQZ5MNX6JR6GPH5": {
-    id: "CD5JAD6VAMI2IR7IKNAX42AL4MFBAZM6ZYE6XBDC6AQZ5MNX6JR6GPH5", name: "Arisan E2E Test", state: "active",
-    deposit: 100, max: 3, members: 3, cycle: 2, totalCycles: 3, cycleDays: 30, apy: 3.2, deadline: "4d 12h",
-    yieldCumulative: 0.8, yieldCollateral: 2.5, yieldVault: 45,
-    participants: [
-      { addr: "G...B0B", collateral: 250, paid: true, streak: 2, tickets: 6, won: true },
-      { addr: "G...CAR", collateral: 250, paid: true, streak: 1, tickets: 3, won: false },
-      { addr: "G...DAV", collateral: 250, paid: false, streak: 0, tickets: 0, won: false },
-    ], cycleWinners: [{ cycle: 1, addr: "G...B0B" }],
-  },
+const FALLBACK_POOL: any = {
+  id: "", name: "Pool Not Found", state: "open",
+  deposit: 0, max: 0, members: 0, cycle: 0, totalCycles: 0, cycleDays: 30, apy: 0,
+  yieldCumulative: 0, yieldCollateral: 0, yieldVault: 0,
+  participants: [], cycleWinners: [],
 };
 
 function GrainOverlay() { return <div className="absolute inset-0 pointer-events-none z-10" style={{ backgroundImage: "radial-gradient(#0a0a0a 1px, transparent 1px)", backgroundSize: "4px 4px", opacity: 0.05 }} />; }
@@ -30,21 +27,121 @@ function StatBox({ label, value, sub, bg = "bg-[#ccfbf1]", Icon }: { label: stri
 
 export default function PoolDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const pool = MOCK[id as string] || Object.values(MOCK)[0];
-  const coll = getRequiredCollateralAmount(pool.deposit, pool.max, DEFAULT_COLLATERAL_MULTIPLIER);
-  const progressPct = pool.totalCycles > 0 ? Math.round((pool.cycle / pool.totalCycles) * 100) : 0;
+  const [pool, setPool] = useState<any>(FALLBACK_POOL);
+  const [config, setConfig] = useState<any>(null);
+  const [adminAddr, setAdminAddr] = useState<string>("");
+  const [memberInfo, setMemberInfo] = useState<any>(null);
+  const [fetching, setFetching] = useState(true);
+  const { address } = useWallet();
   const { loading, error, txHash, invokeContract } = useFreighterTx();
-  const isAdmin = true;
-  const isParticipant = true;
-  const hasPaid = false;
+  const coll = config ? getRequiredCollateralFromConfig(config) : 0;
+  const progressPct = pool.totalCycles > 0 ? Math.round((pool.cycle / pool.totalCycles) * 100) : 0;
 
-  const handleJoin = () => invokeContract(pool.id, "join", [scvAddress("")]);
-  const handleDeposit = () => invokeContract(pool.id, "contribute", [scvAddress("")]);
-  const handleSelect = () => invokeContract(pool.id, "select_winner", []);
-  const handleStart = () => invokeContract(pool.id, "start_pool", []);
+  const loadPool = useCallback(async () => {
+    if (!id) return;
+    try {
+      const res = await fetch(`/api/contract-state?pool_id=${id}`);
+      const data = await res.json();
+      if (data.success && data.state) {
+        const s = data.state;
+        const c = data.config || {};
+        setConfig(c);
+        const stateTag = Array.isArray(s.state) ? s.state[0] : s.state;
+        const mapped = stateTag === "Active" ? "active"
+          : stateTag === "Completed" ? "completed"
+          : s.is_full ? "ready" : "open";
 
-  const statusLabel = pool.state === "active" ? "ACTIVE" : pool.state === "open" ? "OPEN" : "COMPLETED";
-  const statusColor = pool.state === "active" ? "bg-[#e0f4ff] text-[#0284c7]" : pool.state === "open" ? "bg-[#ccfbf1] text-[#0d9488]" : "bg-[#e8e1d9] text-[#a8a49a]";
+        let participants: any[] = [];
+        try {
+          const lbRes = await fetch(`/api/contract-state?pool_id=${id}&fn=get_leaderboard`);
+          const lbData = await lbRes.json();
+          if (lbData.success && Array.isArray(lbData.get_leaderboard)) {
+            participants = lbData.get_leaderboard.map(([addr, tickets]: [string, number]) => ({
+              addr, tickets: Number(tickets), paid: false, collateral: 0, streak: 0, won: false,
+            }));
+          }
+        } catch {}
+
+        const cur = Number(s.current_round || 0);
+        const cycleWinners: any[] = [];
+        for (let r = 1; r < cur; r++) {
+          try {
+            const wRes = await fetch(`/api/contract-state?pool_id=${id}&fn=get_round_winner&round=${r}`);
+            const wData = await wRes.json();
+            if (wData.success && wData.get_round_winner) {
+              cycleWinners.push({ cycle: r, addr: wData.get_round_winner });
+            }
+          } catch {}
+        }
+
+        setPool({
+          id,
+          name: c.name || `Pool #${id}`,
+          state: mapped,
+          deposit: Number(c.contribution_amount || 0) / 10_000_000,
+          max: Number(c.max_members || s.total_rounds || 0),
+          members: Number(s.member_count || 0),
+          cycle: cur,
+          totalCycles: Number(s.total_rounds || 0),
+          cycleDays: 30,
+          apy: 0,
+          yieldCumulative: Number(s.yield_balance || 0) / 10_000_000,
+          yieldCollateral: Number(s.collateral_yield_balance || 0) / 10_000_000,
+          yieldVault: 0,
+          participants,
+          cycleWinners,
+        });
+      }
+    } catch {}
+    setFetching(false);
+  }, [id]);
+
+  const loadAdmin = useCallback(async () => {
+    if (!id) return;
+    try {
+      const res = await fetch(`/api/contract-state?pool_id=${id}&fn=get_admin`);
+      const data = await res.json();
+      if (data.success && data.get_admin) setAdminAddr(data.get_admin);
+    } catch {}
+  }, [id]);
+
+  const loadMembership = useCallback(async () => {
+    if (!id || !address) { setMemberInfo(null); return; }
+    try {
+      const res = await fetch(`/api/contract-state?pool_id=${id}&fn=get_member_info&member=${address}`);
+      const data = await res.json();
+      setMemberInfo(data.success ? data.get_member_info : null);
+    } catch { setMemberInfo(null); }
+  }, [id, address]);
+
+  useEffect(() => { loadPool(); loadAdmin(); }, [loadPool, loadAdmin]);
+  useEffect(() => { loadMembership(); }, [loadMembership]);
+
+  const refreshAll = useCallback(async () => {
+    await Promise.all([loadPool(), loadMembership()]);
+  }, [loadPool, loadMembership]);
+
+  const isAdmin = !!address && !!adminAddr && address === adminAddr;
+  const isParticipant = !!memberInfo;
+  const hasPaid = !!memberInfo?.deposited_this_round;
+
+  const runTx = async (method: string, args: any[]) => {
+    const result = await invokeContract(CONTRACT_IDS.pool, method, args);
+    if (result?.success) await refreshAll();
+    return result;
+  };
+  const handleJoin = () => runTx("join", [scvU32(Number(id)), scvAddress(address!)]);
+  const handleDeposit = () => runTx("contribute", [scvU32(Number(id)), scvAddress(address!)]);
+  const handleSelect = () => runTx("select_winner", [scvU32(Number(id))]);
+  const handleStart = () => runTx("start_pool", [scvU32(Number(id))]);
+
+  const canJoin = pool.state === "open" && !isParticipant && pool.members < pool.max && !!address;
+  const canStart = pool.state === "ready" && isAdmin;
+  const canDeposit = pool.state === "active" && isParticipant && !hasPaid;
+  const canSelect = pool.state === "active" && isAdmin;
+
+  const statusLabel = pool.state === "active" ? "ACTIVE" : pool.state === "ready" ? "READY" : pool.state === "open" ? "OPEN" : "COMPLETED";
+  const statusColor = pool.state === "active" ? "bg-[#e0f4ff] text-[#0284c7]" : pool.state === "completed" ? "bg-[#e8e1d9] text-[#a8a49a]" : "bg-[#ccfbf1] text-[#0d9488]";
 
   return (
     <div>
@@ -88,10 +185,10 @@ export default function PoolDetailPage() {
               </div></div>
 
               <div className="flex flex-wrap gap-3">
-                {pool.state === "open" && <button onClick={handleJoin} disabled={loading} className={BTN_ORANGE + " px-8 disabled:opacity-50"}>{loading ? "..." : `Join · ${coll} XLM`}</button>}
-                {pool.state === "active" && !hasPaid && <button onClick={handleDeposit} disabled={loading} className={BTN_PRIMARY + " px-8 disabled:opacity-50"}>{loading ? "..." : `Deposit ${pool.deposit} XLM`}</button>}
-                {pool.state === "ready" && isAdmin && <button onClick={handleStart} disabled={loading} className={BTN_SUCCESS + " px-6 disabled:opacity-50"}>{loading ? "..." : "Start Pool"}</button>}
-                {pool.state === "active" && isAdmin && <button onClick={handleSelect} disabled={loading} className={BTN_ORANGE + " px-6 disabled:opacity-50"}>{loading ? "..." : "Select Winner"}</button>}
+                {canJoin && <button onClick={handleJoin} disabled={loading} className={BTN_ORANGE + " px-8 disabled:opacity-50"}>{loading ? "..." : `Join · ${coll} XLM`}</button>}
+                {canDeposit && <button onClick={handleDeposit} disabled={loading} className={BTN_PRIMARY + " px-8 disabled:opacity-50"}>{loading ? "..." : `Deposit ${pool.deposit} XLM`}</button>}
+                {canStart && <button onClick={handleStart} disabled={loading} className={BTN_SUCCESS + " px-6 disabled:opacity-50"}>{loading ? "..." : "Start Pool"}</button>}
+                {canSelect && <button onClick={handleSelect} disabled={loading} className={BTN_ORANGE + " px-6 disabled:opacity-50"}>{loading ? "..." : "Select Winner"}</button>}
               </div>
 
               <div className={CARD_CLASS}><GrainOverlay /><div className="relative z-20 p-6">
@@ -101,7 +198,7 @@ export default function PoolDetailPage() {
                   <StatBox label="Pool Gacha" value={`${pool.yieldCumulative} XLM`} bg="bg-[#ede9fe]" sub="Cumulative" Icon={Gift} />
                   <StatBox label="Collateral" value={`${pool.yieldCollateral} XLM`} bg="bg-[#e0f4ff]" sub="Monthly split" />
                   <StatBox label="Est. APY" value={`${pool.apy}%`} bg="bg-[#ccfbf1]" />
-                  <StatBox label="Collat/Member" value={`${coll} XLM`} bg="bg-[#fef9c3]" sub={`${DEFAULT_COLLATERAL_MULTIPLIER}%`} />
+                  <StatBox label="Collat/Member" value={`${coll} XLM`} bg="bg-[#fef9c3]" sub={`${config ? Number(config.collateral_ratio_bps) / 100 : DEFAULT_COLLATERAL_MULTIPLIER}%`} />
                 </div>
               </div></div>
 

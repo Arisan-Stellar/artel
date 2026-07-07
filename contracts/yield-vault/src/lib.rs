@@ -35,15 +35,28 @@ fn derive_seed(env: &Env, salt: u64) -> u64 {
     (ledger.sequence() as u64).wrapping_mul(ledger.timestamp()).wrapping_add(salt)
 }
 
-fn weighted_random_index(weights: &Vec<u32>, salt: u64, env: &Env) -> u32 {
+fn unbiased_mod(seed: u64, modulus: u64) -> u64 {
+    if modulus <= 1 { return 0; }
+    let mask = (1u64 << (64 - modulus.leading_zeros())) - 1;
+    let mut state = seed;
+    loop {
+        let masked = state & mask;
+        if masked < modulus { return masked; }
+        state = state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+    }
+}
+
+fn weighted_random_index(env: &Env, weights: &Vec<u32>, salt: u64) -> u32 {
     let total: u32 = weights.iter().sum();
     if total == 0 { return 0; }
     let seed = derive_seed(env, salt);
-    let mask = (1u64 << (64 - (total as u64).leading_zeros())) - 1;
-    loop {
-        let roll = (seed.wrapping_add(env.ledger().sequence() as u64)) & mask;
-        if roll < total as u64 { return roll as u32; }
+    let roll = unbiased_mod(seed, total as u64);
+    let mut cumulative: u32 = 0;
+    for (i, w) in weights.iter().enumerate() {
+        cumulative = cumulative.saturating_add(w);
+        if roll < cumulative as u64 { return i as u32; }
     }
+    (weights.len().saturating_sub(1)) as u32
 }
 
 fn check_annual_date(env: &Env) {
@@ -120,9 +133,9 @@ impl YieldVault {
         let locked: bool = env.storage().instance().get(&VaultKey::GachaLocked).unwrap_or(false);
         assert!(!locked, "gacha already executed — reset participants first");
 
-        let total_vaulted: i128 = env.storage().instance().get(&VaultKey::TotalVaulted).unwrap_or(0);
         let total_dist: i128 = env.storage().instance().get(&VaultKey::TotalDistributed).unwrap_or(0);
-        let available = total_vaulted - total_dist;
+        let token_addr: Address = env.storage().instance().get(&VaultKey::Token).unwrap();
+        let available = token::Client::new(&env, &token_addr).balance(&env.current_contract_address());
         if available <= 0 { return Vec::new(&env); }
 
         let count: u32 = env.storage().instance().get(&VaultKey::ArisanCount).unwrap_or(0);
@@ -141,7 +154,7 @@ impl YieldVault {
 
         let mut winners = Vec::new(&env);
 
-        let gidx = weighted_random_index(&weights, GACHA_SALT, &env);
+        let gidx = weighted_random_index(&env, &weights, GACHA_SALT);
         let (grand_addr, grand_tickets) = participants.get(gidx).unwrap();
         winners.push_back(GachaWinner { address: grand_addr.clone(), tier: 0, tickets: grand_tickets, prize: grand_prize });
 
@@ -149,7 +162,7 @@ impl YieldVault {
         let seed3 = GACHA_SALT.wrapping_mul(6271);
         let mut runner_winners: Vec<Address> = Vec::new(&env);
         for &s in [seed2, seed3].iter() {
-            let idx = weighted_random_index(&weights, s, &env);
+            let idx = weighted_random_index(&env, &weights, s);
             let (addr, tickets) = participants.get(idx).unwrap();
             if !runner_winners.contains(&addr) {
                 runner_winners.push_back(addr.clone());
@@ -157,7 +170,7 @@ impl YieldVault {
             } else if participants.len() > runner_winners.len() {
                 // Try alternate index if duplicate
                 let alt_salt = s.wrapping_add(1);
-                let alt_idx = weighted_random_index(&weights, alt_salt, &env);
+                let alt_idx = weighted_random_index(&env, &weights, alt_salt);
                 let (alt_addr, alt_tickets) = participants.get(alt_idx).unwrap();
                 if !runner_winners.contains(&alt_addr) && alt_addr.clone() != grand_addr.clone() {
                     runner_winners.push_back(alt_addr.clone());
@@ -174,6 +187,15 @@ impl YieldVault {
                 if !already {
                     winners.push_back(GachaWinner { address: addr.clone(), tier: 2, tickets, prize: each });
                 }
+            }
+        }
+
+        let token_addr: Address = env.storage().instance().get(&VaultKey::Token).unwrap();
+        let token_client = token::Client::new(&env, &token_addr);
+        let vault_addr = env.current_contract_address();
+        for w in winners.iter() {
+            if w.prize > 0 {
+                token_client.transfer(&vault_addr, &w.address, &w.prize);
             }
         }
 

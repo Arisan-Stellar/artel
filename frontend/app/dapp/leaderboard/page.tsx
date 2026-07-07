@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, createElement } from "react";
+import { useState, useEffect, createElement } from "react";
 import { Trophy, Medal, Star, Circle, Calendar, Sparkles, Gift, Info, ChevronDown, Wallet } from "lucide-react";
 import AnimatedBadge from "@/components/dapp/AnimatedBadge";
 import { HEADING_FONT, LABEL_MONO } from "@/components/dapp/ArtelHeader";
@@ -31,25 +31,66 @@ const GACHA_RULES = [
   { label: "Consolation", desc: "20% split equally among remaining participants." },
 ];
 
-const LEADERBOARD = [
-  { rank: 1, addr: "G...ABC", points: 480, tickets: 160, onTimeRate: 100, totalYield: 245, activePools: 7, tier: "diamond" as Tier },
-  { rank: 2, addr: "G...DEF", points: 365, tickets: 122, onTimeRate: 95, totalYield: 180, activePools: 5, tier: "platinum" as Tier },
-  { rank: 3, addr: "G...GHI", points: 310, tickets: 103, onTimeRate: 88, totalYield: 142, activePools: 4, tier: "platinum" as Tier },
-  { rank: 4, addr: "G...JKL", points: 248, tickets: 82, onTimeRate: 92, totalYield: 98, activePools: 3, tier: "gold" as Tier },
-  { rank: 5, addr: "G...MNO", points: 195, tickets: 65, onTimeRate: 85, totalYield: 76, activePools: 3, tier: "gold" as Tier },
-  { rank: 6, addr: "G...PQR", points: 142, tickets: 47, onTimeRate: 78, totalYield: 52, activePools: 2, tier: "gold" as Tier },
-  { rank: 7, addr: "G...STU", points: 98, tickets: 33, onTimeRate: 70, totalYield: 28, activePools: 2, tier: "silver" as Tier },
-  { rank: 8, addr: "G...VWX", points: 65, tickets: 22, onTimeRate: 60, totalYield: 15, activePools: 1, tier: "silver" as Tier },
-  { rank: 9, addr: "G...YZA", points: 35, tickets: 12, onTimeRate: 45, totalYield: 5, activePools: 1, tier: "bronze" as Tier },
-  { rank: 10, addr: "G...BCD", points: 12, tickets: 4, onTimeRate: 30, totalYield: 0, activePools: 1, tier: "bronze" as Tier },
-];
+interface LbRow { rank: number; addr: string; fullAddr: string; points: number; tickets: number; onTimeRate: number; totalYield: number; activePools: number; tier: Tier }
+
+function tierFromPoints(points: number): Tier {
+  if (points >= 400) return "diamond";
+  if (points >= 300) return "platinum";
+  if (points >= 200) return "gold";
+  if (points >= 100) return "silver";
+  return "bronze";
+}
 
 export default function LeaderboardPage() {
   const { address } = useWallet();
   const [showRules, setShowRules] = useState(false);
+  const [leaderboard, setLeaderboard] = useState<LbRow[]>([]);
+  const [loading, setLoading] = useState(true);
   const tiers = (Object.keys(TIER_CONFIG) as Tier[]).map((k) => ({ key: k, ...TIER_CONFIG[k] })).sort((a, b) => b.minPoints - a.minPoints);
-  const silverPlus = LEADERBOARD.filter(p => p.points >= 100).length;
-  const userRank = address ? LEADERBOARD.find(p => p.addr.startsWith(address.slice(0, 5))) ?? null : null;
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const { count } = await (await fetch("/api/pools")).json();
+        const agg: Record<string, { points: number; tickets: number; early: number; mid: number; late: number; yield: number; pools: number }> = {};
+        for (let i = 0; i < (count || 0); i++) {
+          const lb = await (await fetch(`/api/contract-state?pool_id=${i}&fn=get_leaderboard`)).json();
+          const rows: [string, number][] = Array.isArray(lb.get_leaderboard) ? lb.get_leaderboard : [];
+          await Promise.all(rows.map(async ([addr, tickets]) => {
+            const mi = (await (await fetch(`/api/contract-state?pool_id=${i}&fn=get_member_info&member=${addr}`)).json()).get_member_info;
+            if (!agg[addr]) agg[addr] = { points: 0, tickets: 0, early: 0, mid: 0, late: 0, yield: 0, pools: 0 };
+            const a = agg[addr];
+            a.tickets += Number(tickets || 0);
+            a.pools += 1;
+            if (mi) {
+              a.points += Number(mi.total_points || 0);
+              a.early += Number(mi.early_payments || 0);
+              a.mid += Number(mi.mid_payments || 0);
+              a.late += Number(mi.late_payments || 0);
+              a.yield += Number(mi.yield_earned || 0) / 10_000_000;
+            }
+          }));
+        }
+        const rows: LbRow[] = Object.entries(agg).map(([addr, a]) => {
+          const totalPay = a.early + a.mid + a.late;
+          return {
+            rank: 0, addr: `${addr.slice(0, 4)}…${addr.slice(-4)}`, fullAddr: addr,
+            points: a.points, tickets: a.tickets,
+            onTimeRate: totalPay > 0 ? Math.round((a.early + a.mid) / totalPay * 100) : 0,
+            totalYield: Math.round(a.yield * 100) / 100, activePools: a.pools,
+            tier: tierFromPoints(a.points),
+          };
+        }).sort((x, y) => y.points - x.points).map((r, i) => ({ ...r, rank: i + 1 }));
+        setLeaderboard(rows);
+      } catch {}
+      setLoading(false);
+    };
+    load();
+  }, []);
+
+  const silverPlus = leaderboard.filter(p => p.points >= 100).length;
+  const userRank = address ? leaderboard.find(p => p.fullAddr === address) ?? null : null;
 
   return (
     <div>
@@ -178,9 +219,9 @@ export default function LeaderboardPage() {
 
           <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-3">
             {[
-              { label: "TOTAL SAVERS", value: String(LEADERBOARD.length * 12), color: "#5eead4", decor: "👥" },
+              { label: "TOTAL SAVERS", value: String(leaderboard.length), color: "#5eead4", decor: "👥" },
               { label: "YIELD EARNED", value: "1,245 XLM", color: "#7dd3fc", decor: "💎" },
-              { label: "SILVER+ TIER", value: `${Math.round(silverPlus / LEADERBOARD.length * 100)}%`, color: "#fde68a", decor: "🥈" },
+              { label: "SILVER+ TIER", value: `${leaderboard.length ? Math.round(silverPlus / leaderboard.length * 100) : 0}%`, color: "#fde68a", decor: "🥈" },
             ].map(({ label, value, color, decor }) => (
               <div key={label} className="brutal-subscribe__container group" style={{ maxWidth: "none" }}>
                 <div className="brutal-subscribe__header" style={{ backgroundColor: color }}>
@@ -224,7 +265,10 @@ export default function LeaderboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {LEADERBOARD.map((p) => {
+                {leaderboard.length === 0 && (
+                  <tr><td colSpan={7} className="px-4 py-6 text-center text-sm font-semibold text-[#333]">{loading ? "Loading leaderboard…" : "No savers yet — join a pool and contribute to rank up."}</td></tr>
+                )}
+                {leaderboard.map((p) => {
                   const TierIcon = TIER_CONFIG[p.tier].icon;
                   return (
                     <tr key={p.rank} className="border-b-2 border-[#f59e0b] bg-white hover:bg-[#fef3c7] transition-all cursor-pointer">

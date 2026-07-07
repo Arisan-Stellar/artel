@@ -1,26 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Layers, Users, DollarSign, Shield, Sparkles, Droplets } from "lucide-react";
 import { LABEL_MONO, HEADING_FONT, BarcodeStrip } from "@/components/dapp/ArtelHeader";
-import { CONTRACT_IDS } from "@/lib/artel-sdk";
-import { getRequiredCollateralAmount, DEFAULT_COLLATERAL_MULTIPLIER } from "@/lib/poolMath";
+import { getRequiredCollateralFromConfig } from "@/lib/poolMath";
 import AnimatedBadge from "@/components/dapp/AnimatedBadge";
 import { useWallet } from "@/hooks/WalletContext";
-import { useFreighterTx, scvAddress } from "@/hooks/useFreighterTx";
 import WalletCard from "@/components/dapp/WalletCard";
 
-interface PoolEntry { id: string; name: string; deposit: number; max: number; members: number; status: "open" | "active" | "completed"; cycle: number; totalCycles: number; cycleDays: number; apy: number; totalFunds: number; yieldAccrued: number; }
+interface PoolEntry { id: string; name: string; deposit: number; max: number; members: number; status: "open" | "active" | "completed"; cycle: number; totalCycles: number; cycleDays: number; apy: number; totalFunds: number; yieldAccrued: number; collateralBps: number; }
 
-const POOLS: PoolEntry[] = [
-  { id: CONTRACT_IDS.pool, name: "Arisan E2E", deposit: 100, max: 3, members: 3, status: "active", cycle: 2, totalCycles: 3, cycleDays: 30, apy: 3.2, totalFunds: 300, yieldAccrued: 0.5 },
-  { id: "POOL_02", name: "Keluarga Harmoni", deposit: 50, max: 8, members: 4, status: "open", cycle: 0, totalCycles: 8, cycleDays: 30, apy: 2.8, totalFunds: 200, yieldAccrued: 0 },
-  { id: "POOL_03", name: "Komunitas DeFi", deposit: 200, max: 12, members: 12, status: "completed", cycle: 12, totalCycles: 12, cycleDays: 14, apy: 5.1, totalFunds: 2400, yieldAccrued: 15.2 },
-  { id: "POOL_04", name: "Mahasiswa UGM", deposit: 10, max: 20, members: 7, status: "open", cycle: 0, totalCycles: 20, cycleDays: 30, apy: 1.9, totalFunds: 70, yieldAccrued: 0 },
-  { id: "POOL_05", name: "Weekend Savers", deposit: 25, max: 6, members: 6, status: "active", cycle: 4, totalCycles: 6, cycleDays: 7, apy: 4.2, totalFunds: 150, yieldAccrued: 2.1 },
-  { id: "POOL_06", name: "Startup Founders", deposit: 500, max: 5, members: 3, status: "open", cycle: 0, totalCycles: 5, cycleDays: 30, apy: 6.0, totalFunds: 1500, yieldAccrued: 0 },
-];
 
 const STATUS_BADGE: Record<string, { bg: string; label: string }> = {
   open: { bg: "#f59e0b", label: "OPEN" },
@@ -34,12 +24,65 @@ const STATUS_HEADER: Record<string, string> = {
   completed: "#2dd4bf",
 };
 
+type PoolStatus = "open" | "active" | "completed";
+
 export default function PoolsPage() {
   const { address, connecting } = useWallet();
-  const [filter, setFilter] = useState<"all" | "open" | "active" | "completed">("all");
-  const [showCreate, setShowCreate] = useState(false);
-  const [joiningId, setJoiningId] = useState<string | null>(null);
-  const filtered = filter === "all" ? POOLS : POOLS.filter((p) => p.status === filter);
+  const [pools, setPools] = useState<PoolEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<"all" | PoolStatus>("all");
+
+  useEffect(() => {
+    const fetchPools = async () => {
+      try {
+        const countRes = await fetch("/api/pools");
+        const countData = await countRes.json();
+        const count = countData.count || 0;
+
+        if (count > 0) {
+          const entries = await Promise.all(
+            Array.from({ length: count }, (_, i) => i).map(async (poolId: number) => {
+              try {
+                const res = await fetch(`/api/contract-state?pool_id=${poolId}`);
+                const data = await res.json();
+                if (data.success) return parsePoolState(String(poolId), data.state, data.config);
+              } catch {}
+              return null;
+            })
+          );
+          const valid = entries.filter((e): e is PoolEntry => e !== null);
+          setPools(valid);
+          setLoading(false);
+          return;
+        }
+      } catch {}
+      setPools([]);
+      setLoading(false);
+    };
+    fetchPools();
+  }, []);
+
+  function parsePoolState(id: string, state: any, config: any): PoolEntry {
+    const c = config || {};
+    const stateTag = Array.isArray(state.state) ? state.state[0] : state.state;
+    return {
+      id,
+      name: c.name || `Pool ${id.slice(0, 6)}...${id.slice(-4)}`,
+      deposit: Number(c.contribution_amount || 0) / 10_000_000,
+      max: Number(c.max_members || state.total_rounds || 0),
+      members: Number(state.member_count || 0),
+      status: (stateTag === "Active" ? "active" : stateTag === "Completed" ? "completed" : "open") as PoolStatus,
+      cycle: Number(state.current_round || 0),
+      totalCycles: Number(state.total_rounds || 0),
+      cycleDays: 30,
+      apy: 0,
+      totalFunds: Number(state.pool_funds_balance || 0) / 10_000_000,
+      yieldAccrued: Number(state.yield_balance || 0) / 10_000_000,
+      collateralBps: Number(c.collateral_ratio_bps || 12500),
+    };
+  }
+
+  const filtered = filter === "all" ? pools : pools.filter((p) => p.status === filter);
 
   return (
     <div>
@@ -67,10 +110,10 @@ export default function PoolsPage() {
           {/* Stats */}
           <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-4">
             {[
-              { label: "TOTAL POOLS", value: POOLS.length, color: "#f59e0b", sub: "live" },
-              { label: "OPEN", value: POOLS.filter((p) => p.status === "open").length, color: "#fda4af", sub: "ready" },
-              { label: "RUNNING", value: POOLS.filter((p) => p.status === "active").length, color: "#c084fc", sub: "active" },
-              { label: "COMPLETED", value: POOLS.filter((p) => p.status === "completed").length, color: "#2dd4bf", sub: "done" },
+              { label: "TOTAL POOLS", value: loading ? "..." : pools.length, color: "#f59e0b", sub: "live" },
+              { label: "OPEN", value: loading ? "..." : pools.filter((p) => p.status === "open").length, color: "#fda4af", sub: "ready" },
+              { label: "RUNNING", value: loading ? "..." : pools.filter((p) => p.status === "active").length, color: "#c084fc", sub: "active" },
+              { label: "COMPLETED", value: loading ? "..." : pools.filter((p) => p.status === "completed").length, color: "#2dd4bf", sub: "done" },
             ].map(({ label, value, color }) => (
               <div key={label} className="brutal-subscribe__container group">
                 <div className="brutal-subscribe__header" style={{ backgroundColor: color }}>
@@ -95,12 +138,12 @@ export default function PoolsPage() {
               </span>
             </a>
             {address ? (
-              <button onClick={() => setShowCreate(true)} className="game-btn">
+              <Link href="/dapp/create" className="game-btn">
                 <span className="game-btn-inner">
                   <span className="game-btn-slide" />
                   <span className="game-btn-text">+ Create Pool</span>
                 </span>
-              </button>
+              </Link>
             ) : (
               <div className="border-[3px] border-[#0a0a0a] bg-[var(--color-artel)] bg-opacity-10 px-4 py-2 text-xs font-bold text-[#333333]">
                 Connect wallet to create a pool
@@ -135,7 +178,7 @@ export default function PoolsPage() {
               const status = STATUS_BADGE[pool.status];
               const headerColor = STATUS_HEADER[pool.status] || "#fda4af";
               const memberRatio = pool.members / pool.max;
-              const coll = getRequiredCollateralAmount(pool.deposit, pool.max, DEFAULT_COLLATERAL_MULTIPLIER);
+              const coll = getRequiredCollateralFromConfig({ contribution_amount: pool.deposit * 10_000_000, max_members: pool.max, collateral_ratio_bps: pool.collateralBps });
 
               return (
                 <div key={pool.id} className="group">
@@ -175,10 +218,9 @@ export default function PoolsPage() {
                     </div>
                     <div className="grid grid-cols-2 border-t-[3px] border-[#0a0a0a]">
                       {address ? (
-                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setJoiningId(pool.id); }}
-                          disabled={joiningId === pool.id}
-                          className="py-2.5 text-xs font-black uppercase tracking-[0.08em] text-[#0a0a0a] hover:bg-[#e8e1d9] transition border-r-[3px] border-[#0a0a0a] disabled:opacity-50"
-                          style={LABEL_MONO}>{joiningId === pool.id ? "..." : "Join Now"}</button>
+                        <Link href={`/dapp/pools/${pool.id}`}
+                          className="flex items-center justify-center py-2.5 text-xs font-black uppercase tracking-[0.08em] text-[#0a0a0a] hover:bg-[#e8e1d9] transition border-r-[3px] border-[#0a0a0a]"
+                          style={LABEL_MONO}>Join Now</Link>
                       ) : (
                         <div className="py-2.5 text-xs font-black uppercase tracking-[0.08em] text-[#a8a49a] text-center border-r-[3px] border-[#0a0a0a]" style={LABEL_MONO}>Connect to Join</div>
                       )}

@@ -47,7 +47,7 @@ impl ArisanFactory {
         env.storage().instance().set(&symbol_short!("pools"), &pools);
         count += 1;
         env.storage().instance().set(&symbol_short!("count"), &count);
-        env.storage().instance().set(&symbol_short!("pool"), &PoolEntry {
+        env.storage().instance().set(&pool_address, &PoolEntry {
             contract_id: pool_address.clone(),
             admin: deployer,
             name,

@@ -20,15 +20,13 @@ impl ArtelFaucet {
     }
 
     pub fn claim(env: Env, to: Address) -> i128 {
-        let admin: Address = env.storage().instance().get(&FaucetKey::Admin).unwrap();
-        admin.require_auth();
+        to.require_auth();
 
         let now = env.ledger().timestamp();
-        let key = symbol_short!("last");
-        if let Some(last) = env.storage().temporary().get::<_, u64>(&key) {
+        if let Some(last) = env.storage().temporary().get::<Address, u64>(&to) {
             assert!(now - last >= COOLDOWN_SECS, "wait before claiming again");
         }
-        env.storage().temporary().set(&key, &now);
+        env.storage().temporary().set(&to, &now);
 
         let token_addr: Address = env.storage().instance().get(&FaucetKey::Token).unwrap();
         let sac = token::StellarAssetClient::new(&env, &token_addr);

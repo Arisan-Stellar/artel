@@ -68,7 +68,7 @@ export default function FaucetPage() {
           <div className="flex items-start gap-3 max-w-lg">
             <div className="w-1.5 h-24 bg-[var(--color-artel)] shrink-0 mt-1.5" />
             <p className="text-lg font-semibold leading-7 text-[#333333]">
-              Zero friction. One click. Instant delivery. No trustline required. No gas fees from your wallet. Just connect and claim. 10,000 XLM sent directly to your address via Stellar Friendbot.
+              Zero friction. One click. Instant delivery. No trustline required. Just connect and claim 10,000 XLM via Stellar Friendbot. Use XLM to join pools, pay contributions, and earn yield.
             </p>
           </div>
         </div>
@@ -127,7 +127,7 @@ export default function FaucetPage() {
             <div className="info-card mt-6">
               <div className="info-head">How it works</div>
               <div className="info-content">
-                <p>XLM sent via Stellar Friendbot. No trustline needed. 10,000 XLM per claim, 24h cooldown. Gas sponsored by ARTEL relay.</p>
+                <p>XLM sent via Stellar Friendbot — no trustline needed. 10,000 XLM per claim. Use XLM as collateral and contributions in ARTEL pools.</p>
               </div>
             </div>
           </div>

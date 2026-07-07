@@ -1,36 +1,80 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { User, Wallet, Users, Trophy, PiggyBank, Zap, Copy, Award } from "lucide-react";
 import { HEADING_FONT, LABEL_MONO } from "@/components/dapp/ArtelHeader";
 import { useWallet } from "@/hooks/WalletContext";
 import WalletCard from "@/components/dapp/WalletCard";
 import AnimatedBadge from "@/components/dapp/AnimatedBadge";
 
-const STATS = [
-  { label: "ACTIVE POOLS", value: "3", icon: Users, color: "#f9a8d4", decor: "🌸" },
-  { label: "ROUNDS WON", value: "2", icon: Trophy, color: "#e879f9", decor: "🏆" },
-  { label: "TOTAL SAVED", value: "300 XLM", icon: PiggyBank, color: "#5eead4", decor: "💰" },
-  { label: "YIELD EARNED", value: "12.5 XLM", icon: Zap, color: "#fb923c", decor: "⚡" },
-];
+function tierFromPoints(points: number): string {
+  if (points >= 400) return "Diamond";
+  if (points >= 300) return "Platinum";
+  if (points >= 200) return "Gold";
+  if (points >= 100) return "Silver";
+  return "Bronze";
+}
 
-const ACTIVITY = [
-  { type: "create" as const, label: "Created pool", pool: "Arisan RT 05", time: "3 months ago" },
-  { type: "win" as const, label: "Won cycle #1", pool: "Keluarga Harmoni", time: "2 months ago" },
-  { type: "join" as const, label: "Joined pool", pool: "Komunitas DeFi", time: "1 month ago" },
-  { type: "win" as const, label: "Won cycle #3", pool: "Arisan RT 05", time: "2 weeks ago" },
-];
+function relTime(unixSecs: number): string {
+  if (!unixSecs) return "";
+  const diff = Math.floor(Date.now() / 1000) - unixSecs;
+  const d = Math.floor(diff / 86400);
+  if (d > 30) return `${Math.floor(d / 30)} months ago`;
+  if (d >= 1) return `${d} days ago`;
+  const h = Math.floor(diff / 3600);
+  if (h >= 1) return `${h} hours ago`;
+  return "just now";
+}
 
-const BADGES = [
-  { icon: "✨" as const, label: "Early Bird", desc: "10 early payments", color: "#fde68a" },
-  { icon: "🛡️" as const, label: "Streak Master", desc: "5x streak", color: "#93c5fd" },
-  { icon: "🏆" as const, label: "Winner", desc: "2 rounds won", color: "#fcd34d" },
-];
+interface Agg {
+  activePools: number; roundsWon: number; totalSaved: number; yieldEarned: number; points: number;
+  earlyPayments: number; bestStreak: number;
+  activity: { type: "create" | "win" | "join"; label: string; pool: string; time: string }[];
+}
 
 export default function ProfilePage() {
   const { address } = useWallet();
   const [copied, setCopied] = useState(false);
-  const displayAddr = address ? `${address.slice(0,6)}...${address.slice(-4)}` : "";
+  const [agg, setAgg] = useState<Agg | null>(null);
+  const displayAddr = address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "";
+
+  const load = useCallback(async () => {
+    if (!address) return;
+    try {
+      const { count } = await (await fetch("/api/pools")).json();
+      const a: Agg = { activePools: 0, roundsWon: 0, totalSaved: 0, yieldEarned: 0, points: 0, earlyPayments: 0, bestStreak: 0, activity: [] };
+      for (let i = 0; i < (count || 0); i++) {
+        const [miRes, adminRes, stateRes] = await Promise.all([
+          fetch(`/api/contract-state?pool_id=${i}&fn=get_member_info&member=${address}`).then((r) => r.json()).catch(() => null),
+          fetch(`/api/contract-state?pool_id=${i}&fn=get_admin`).then((r) => r.json()).catch(() => null),
+          fetch(`/api/contract-state?pool_id=${i}`).then((r) => r.json()).catch(() => null),
+        ]);
+        const mi = miRes?.get_member_info;
+        if (!mi) continue;
+        const s = stateRes?.state || {};
+        const c = stateRes?.config || {};
+        const name = c.name || `Pool #${i}`;
+        const stateTag = Array.isArray(s.state) ? s.state[0] : s.state;
+        if (stateTag === "Active") a.activePools += 1;
+        if (mi.has_won) a.roundsWon += 1;
+        a.totalSaved += Number(mi.total_contributed || 0) / 10_000_000;
+        a.yieldEarned += Number(mi.yield_earned || 0) / 10_000_000;
+        a.points += Number(mi.total_points || 0);
+        a.earlyPayments += Number(mi.early_payments || 0);
+        a.bestStreak = Math.max(a.bestStreak, Number(mi.current_streak || 0));
+        const isAdmin = adminRes?.get_admin === address;
+        a.activity.push({
+          type: mi.has_won ? "win" : isAdmin ? "create" : "join",
+          label: mi.has_won ? "Won a round in" : isAdmin ? "Created pool" : "Joined pool",
+          pool: name,
+          time: relTime(Number(mi.joined_at || 0)),
+        });
+      }
+      setAgg(a);
+    } catch {}
+  }, [address]);
+
+  useEffect(() => { load(); }, [load]);
 
   if (!address) {
     return (
@@ -42,6 +86,21 @@ export default function ProfilePage() {
       </div>
     );
   }
+
+  const points = agg?.points ?? 0;
+  const tier = tierFromPoints(points);
+  const stats = [
+    { label: "ACTIVE POOLS", value: String(agg?.activePools ?? 0), icon: Users, color: "#f9a8d4", decor: "🌸" },
+    { label: "ROUNDS WON", value: String(agg?.roundsWon ?? 0), icon: Trophy, color: "#e879f9", decor: "🏆" },
+    { label: "TOTAL SAVED", value: `${Math.round((agg?.totalSaved ?? 0) * 100) / 100} XLM`, icon: PiggyBank, color: "#5eead4", decor: "💰" },
+    { label: "YIELD EARNED", value: `${Math.round((agg?.yieldEarned ?? 0) * 100) / 100} XLM`, icon: Zap, color: "#fb923c", decor: "⚡" },
+  ];
+  const activity = agg?.activity ?? [];
+  const badges = [
+    ...((agg?.earlyPayments ?? 0) >= 10 ? [{ icon: "✨", label: "Early Bird", desc: `${agg?.earlyPayments} early payments`, color: "#fde68a" }] : []),
+    ...((agg?.bestStreak ?? 0) >= 5 ? [{ icon: "🛡️", label: "Streak Master", desc: `${agg?.bestStreak}x streak`, color: "#93c5fd" }] : []),
+    ...((agg?.roundsWon ?? 0) >= 1 ? [{ icon: "🏆", label: "Winner", desc: `${agg?.roundsWon} rounds won`, color: "#fcd34d" }] : []),
+  ];
 
   return (
     <div>
@@ -68,7 +127,7 @@ export default function ProfilePage() {
         <div className="mx-auto max-w-6xl">
           <WalletCard />
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {STATS.map((stat, idx) => {
+            {stats.map((stat, idx) => {
               const Icon = stat.icon;
               return (
                 <div key={stat.label} className="brutal-subscribe__container group" style={{ maxWidth: "none" }}>
@@ -78,7 +137,7 @@ export default function ProfilePage() {
                   </div>
                   <div className="brutal-subscribe__form flex items-center justify-between">
                     <Icon className="size-6 text-[#0a0a0a]" />
-                    <span className="text-xs font-black text-[#333333]" style={LABEL_MONO}>{String(idx+1).padStart(2,"0")}</span>
+                    <span className="text-xs font-black text-[#333333]" style={LABEL_MONO}>{String(idx + 1).padStart(2, "0")}</span>
                   </div>
                   <div className="brutal-subscribe__decor" style={{ backgroundColor: stat.color, borderColor: stat.color }}>{stat.decor}</div>
                 </div>
@@ -107,25 +166,21 @@ export default function ProfilePage() {
                 <div className="feature-grid">
                   <div className="feature-item">
                     <div className="feature-icon"><Copy className="size-3.5" /></div>
-                    <button onClick={() => { navigator.clipboard.writeText(address); setCopied(true); setTimeout(()=>setCopied(false),2000); }} className="feature-text hover:underline text-left">
+                    <button onClick={() => { navigator.clipboard.writeText(address); setCopied(true); setTimeout(() => setCopied(false), 2000); }} className="feature-text hover:underline text-left">
                       {copied ? "Copied!" : displayAddr}
                     </button>
                   </div>
                   <div className="feature-item">
-                    <div className="feature-icon" style={{ background: "#14b8a6" }}><span className="size-1.5 rounded-full bg-white" style={{ display:"inline-block" }} /></div>
+                    <div className="feature-icon" style={{ background: "#14b8a6" }}><span className="size-1.5 rounded-full bg-white" style={{ display: "inline-block" }} /></div>
                     <span className="feature-text">Stellar Testnet</span>
                   </div>
                   <div className="feature-item">
-                    <div className="feature-icon"><Award className="size-3.5" /></div>
-                    <span className="feature-text">June 2026</span>
-                  </div>
-                  <div className="feature-item">
                     <div className="feature-icon"><Trophy className="size-3.5" /></div>
-                    <span className="feature-text">248 pts · Silver</span>
+                    <span className="feature-text">{points} pts · {tier}</span>
                   </div>
                 </div>
                 <div className="card-actions">
-                  <div className="price">248<span className="price-currency">pts</span><span className="price-period">REPUTATION</span></div>
+                  <div className="price">{points}<span className="price-currency">pts</span><span className="price-period">REPUTATION</span></div>
                 </div>
               </div>
               <div className="dots-pattern">
@@ -161,19 +216,21 @@ export default function ProfilePage() {
               </div>
               <div className="card-body" style={{ padding: "0.8em 1em" }}>
                 <div className="space-y-2" style={{ marginBottom: "0.8em" }}>
-                  {ACTIVITY.map((item, i) => {
-                    const Icon = item.type==="win"?Trophy:item.type==="create"?Users:Award;
-                    const bg = item.type==="win"?"#fef9c3":"#ccfbf1";
+                  {activity.length === 0 ? (
+                    <p className="text-xs font-semibold text-[#555] p-2">No activity yet — join a pool to get started.</p>
+                  ) : activity.map((item, i) => {
+                    const Icon = item.type === "win" ? Trophy : item.type === "create" ? Users : Award;
+                    const bg = item.type === "win" ? "#fef9c3" : "#ccfbf1";
                     return (
                       <div key={i} className="flex items-center gap-3 border-[2px] border-[#0a0a0a] bg-[#fbf7ed] p-2.5 rounded-sm">
-                        <div className="grid size-8 shrink-0 place-items-center border-[2px] border-[#0a0a0a]" style={{background:bg}}><Icon className="size-3.5 text-[#0a0a0a]" /></div>
+                        <div className="grid size-8 shrink-0 place-items-center border-[2px] border-[#0a0a0a]" style={{ background: bg }}><Icon className="size-3.5 text-[#0a0a0a]" /></div>
                         <div className="min-w-0"><p className="text-xs font-bold truncate">{item.label} <span className="text-[#333]">{item.pool}</span></p><p className="text-[11px] font-semibold text-[#555]">{item.time}</p></div>
                       </div>
                     );
                   })}
                 </div>
                 <div className="card-actions">
-                  <div className="price">4<span className="price-currency">txs</span><span className="price-period">3 MONTHS</span></div>
+                  <div className="price">{activity.length}<span className="price-currency">txs</span><span className="price-period">HISTORY</span></div>
                 </div>
               </div>
               <div className="dots-pattern">
@@ -191,24 +248,28 @@ export default function ProfilePage() {
             </div>
           </div>
           <div className="mt-8 mb-4 flex items-center gap-3">
-            <div className="w-10 h-3" style={{background:"repeating-linear-gradient(to right, #0a0a0a 0, #0a0a0a 2px, transparent 2px, transparent 4px)"}} />
+            <div className="w-10 h-3" style={{ background: "repeating-linear-gradient(to right, #0a0a0a 0, #0a0a0a 2px, transparent 2px, transparent 4px)" }} />
             <span className="border-[3px] border-[#0a0a0a] bg-[#a78bfa] px-4 py-1.5 text-sm font-black uppercase tracking-[0.2em] text-white" style={LABEL_MONO}>BADGES</span>
             <div className="flex-1 h-[3px] bg-[#0a0a0a]" />
           </div>
-          <div className="grid gap-4 sm:grid-cols-3">
-            {BADGES.map((b) => (
-              <div key={b.label} className="brutal-subscribe__container group" style={{ maxWidth: "none" }}>
-                <div className="brutal-subscribe__header" style={{ backgroundColor: b.color }}>
-                  <span className="brutal-subscribe__title text-2xl" style={{ fontFamily: "'Bebas Neue', system-ui, sans-serif", textShadow: "3px 3px 0 rgba(0,0,0,0.2)", color: "#0a0a0a" }}>{b.label}</span>
-                  <span className="brutal-subscribe__subtitle text-xs font-semibold" style={{ color: "#333" }}>{b.desc}</span>
+          {badges.length === 0 ? (
+            <p className="text-sm font-semibold text-[#333]">No badges yet — pay early, keep streaks, and win rounds to earn them.</p>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-3">
+              {badges.map((b) => (
+                <div key={b.label} className="brutal-subscribe__container group" style={{ maxWidth: "none" }}>
+                  <div className="brutal-subscribe__header" style={{ backgroundColor: b.color }}>
+                    <span className="brutal-subscribe__title text-2xl" style={{ fontFamily: "'Bebas Neue', system-ui, sans-serif", textShadow: "3px 3px 0 rgba(0,0,0,0.2)", color: "#0a0a0a" }}>{b.label}</span>
+                    <span className="brutal-subscribe__subtitle text-xs font-semibold" style={{ color: "#333" }}>{b.desc}</span>
+                  </div>
+                  <div className="brutal-subscribe__form flex items-center justify-center">
+                    <span className="text-4xl">{b.icon}</span>
+                  </div>
+                  <div className="brutal-subscribe__decor" style={{ backgroundColor: b.color, borderColor: b.color, color: "#0a0a0a" }}>{b.icon}</div>
                 </div>
-                <div className="brutal-subscribe__form flex items-center justify-center">
-                  <span className="text-4xl">{b.icon}</span>
-                </div>
-                <div className="brutal-subscribe__decor" style={{ backgroundColor: b.color, borderColor: b.color, color: "#0a0a0a" }}>{b.icon}</div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </div>
