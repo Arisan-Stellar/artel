@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { getRequiredCollateralFromConfig, getRemainingCommitmentCycles } from "@/lib/poolMath";
 import { Wallet, Loader } from "lucide-react";
 import { HEADING_FONT, LABEL_MONO } from "@/components/dapp/ArtelHeader";
 import { useWallet } from "@/hooks/WalletContext";
@@ -17,7 +18,7 @@ export default function CreateArisanPage() {
   const [error, setError] = useState("");
   const [result, setResult] = useState("");
 
-  const coll = Math.ceil(deposit * (max - 1) * 125 / 100);
+  const coll = getRequiredCollateralFromConfig({ contribution_amount: deposit * 10_000_000, max_members: max, collateral_ratio_bps: 12500 });
 
   if (!address) {
     return (
