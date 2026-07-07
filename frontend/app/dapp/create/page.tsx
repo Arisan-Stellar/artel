@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { getRequiredCollateralFromConfig, getRemainingCommitmentCycles } from "@/lib/poolMath";
+import { getRequiredCollateralFromConfig } from "@/lib/poolMath";
 import { Wallet, Loader } from "lucide-react";
 import { HEADING_FONT, LABEL_MONO } from "@/components/dapp/ArtelHeader";
 import { useWallet } from "@/hooks/WalletContext";

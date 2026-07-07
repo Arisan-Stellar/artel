@@ -26,7 +26,7 @@ const body = Inter({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://artel-story.vercel.app"),
+  metadataBase: new URL("https://artel-protocol.vercel.app"),
   title: "ARTEL: ROSCA Protocol on Stellar",
   description:
     "The story of ARTEL: arisan, the centuries-old savings circle, brought on-chain on Stellar. Trustless ROSCA with 125% collateral, triple yield, and gacha jackpot.",
