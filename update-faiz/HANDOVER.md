@@ -179,13 +179,20 @@ Pool 0 "Fair Test" — completed:
 ## ⚙️ KEY CONFIG
 
 ```typescript
-// frontend/lib/artel-sdk.ts
-CONTRACT_IDS = {
-  pool: "CBHNJGTYNQGLU25WVUMWW4KDB6XUMBTTP6LMAYCVOVFUX6AEHICADACU",
-  vault: "CDSHKMKFSTQVDDUB3C3USJUOM4MBBYNDF5FMHSLQTOVUMDNXZYZOEBBL",
-};
-XLM_CONTRACT = "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC";
+// frontend/lib/artel-sdk.ts  (env vars with fallback — set NEXT_PUBLIC_* to override)
+CONTRACT_IDS.pool    = process.env.NEXT_PUBLIC_CONTRACT_POOL 
+                     || "CBHNJGTYNQGLU25WVUMWW4KDB6XUMBTTP6LMAYCVOVFUX6AEHICADACU"
+CONTRACT_IDS.vault   = process.env.NEXT_PUBLIC_CONTRACT_VAULT 
+                     || "CDSHKMKFSTQVDDUB3C3USJUOM4MBBYNDF5FMHSLQTOVUMDNXZYZOEBBL"
+XLM_CONTRACT         = process.env.NEXT_PUBLIC_XLM_CONTRACT 
+                     || "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC"
+// NEXT_PUBLIC_NETWORK, NEXT_PUBLIC_RPC_URL, NEXT_PUBLIC_HORIZON_URL
+// Lihat .env.example untuk daftar lengkap
 ```
+
+### Vercel Deployment
+Set semua `NEXT_PUBLIC_*` vars di Vercel → Project Settings → Environment Variables.
+Atau biarkan default (semua jalan ke Stellar Testnet dengan contract terakhir).
 
 ```env
 # frontend/.env.local (jangan commit!)
