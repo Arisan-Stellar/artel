@@ -30,6 +30,11 @@ export const metadata: Metadata = {
   title: "ARTEL: ROSCA Protocol on Stellar",
   description:
     "The story of ARTEL: arisan, the centuries-old savings circle, brought on-chain on Stellar. Trustless ROSCA with 125% collateral, triple yield, and gacha jackpot.",
+  icons: {
+    icon: "/artel-logo.png",
+    shortcut: "/artel-logo.png",
+    apple: "/artel-logo.png",
+  },
   openGraph: {
     title: "ARTEL: ROSCA Protocol on Stellar",
     description:
