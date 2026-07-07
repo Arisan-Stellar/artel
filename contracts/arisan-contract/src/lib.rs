@@ -386,7 +386,6 @@ impl ArisanContract {
         assert!(pool.members.contains_key(member.clone()), "not a member");
         let mut info = pool.members.get(member.clone()).unwrap();
         assert!(info.is_active, "member is not active");
-        assert!(!info.has_won, "winner cannot contribute again");
         assert!(!info.deposited_this_round, "already deposited this round");
 
         let elapsed = seconds_since_round_start(&env, pool.round_start_time);
@@ -475,7 +474,7 @@ impl ArisanContract {
 
         let expected = pool.member_list.iter()
             .filter(|a| {
-                pool.members.get(a.clone()).map(|m| m.is_active && !m.has_won).unwrap_or(false)
+                pool.members.get(a.clone()).map(|m| m.is_active).unwrap_or(false)
             })
             .count() as u32;
         assert!(pool.active_depositors_count >= expected,
@@ -518,7 +517,7 @@ impl ArisanContract {
         }
         pool.active_depositors_count = 0;
 
-        if pool.current_round >= pool.total_rounds {
+        if pool.current_round > pool.total_rounds {
             pool.state = ArisanState::Completed;
         }
 
@@ -1071,7 +1070,6 @@ mod test {
         assert_eq!(state.active_depositors_count, 0, "count must reset for the new round");
 
         for m in [&admin, &m1, &m2] {
-            if m.clone() == winner1 { continue; }
             env.mock_all_auths();
             mint_to(&env, &config.token, m, 200_0000000);
             client.contribute(&pool_id, m);
@@ -1113,5 +1111,52 @@ mod test {
         let m1_info = client.get_member_info(&pool_id, &m1).unwrap();
         assert!(m1_info.deposited_this_round);
         assert_eq!(m1_info.early_payments, 1);
+    }
+
+    #[test]
+    fn test_fair_rosca_full() {
+        let env = Env::default();
+        let (admin, vault, config) = setup(&env, 3);
+        let contract_id = env.register(ArisanContract, ());
+        let client = ArisanContractClient::new(&env, &contract_id);
+
+        let m1 = Address::generate(&env);
+        let m2 = Address::generate(&env);
+        let members = [admin.clone(), m1.clone(), m2.clone()];
+
+        env.mock_all_auths();
+        mint_to(&env, &config.token, &admin, 1000_0000000);
+        let pool_id = client.create_pool(&admin, &vault, &config);
+        for m in [&m1, &m2] {
+            env.mock_all_auths();
+            mint_to(&env, &config.token, m, 1000_0000000);
+            client.join(&pool_id, m);
+        }
+        env.mock_all_auths();
+        client.start_pool(&pool_id);
+
+        let mut winners: Vec<Address> = Vec::new(&env);
+        for round in 1..=3u32 {
+            if round > 1 {
+                for m in members.iter() {
+                    env.mock_all_auths();
+                    client.contribute(&pool_id, m);
+                }
+            }
+            let st = client.get_state(&pool_id);
+            assert_eq!(st.pool_funds_balance, config.contribution_amount * 3, "every round pot = 3 full contributions");
+            env.mock_all_auths();
+            winners.push_back(client.select_winner(&pool_id));
+        }
+
+        assert_eq!(client.get_state(&pool_id).state, ArisanState::Completed, "completes after N rounds for N members");
+        assert!(winners.get(0) != winners.get(1) && winners.get(1) != winners.get(2) && winners.get(0) != winners.get(2), "each member wins exactly once");
+
+        for m in members.iter() {
+            let info = client.get_member_info(&pool_id, m).unwrap();
+            assert!(info.has_won, "every member must have won a round");
+            assert_eq!(info.total_contributed, config.contribution_amount * 3, "every member pays all 3 rounds");
+            assert_eq!(info.pending_winner_payout, config.contribution_amount * 3, "every member wins one full pot");
+        }
     }
 }

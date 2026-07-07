@@ -14,7 +14,7 @@ import type { xdr } from "@stellar/stellar-sdk";
 interface Participant { addr: string; collateral: number; paid: boolean; streak: number; tickets: number; won: boolean }
 interface CycleWinner { cycle: number; addr: string }
 interface ConfigView { name?: string; contribution_amount?: number | string; max_members?: number; collateral_ratio_bps?: number }
-interface MemberView { deposited_this_round?: boolean; [k: string]: unknown }
+interface MemberView { deposited_this_round?: boolean; has_won?: boolean; pending_winner_payout?: number | string; winner_payout_claimed?: boolean; gacha_claimed?: boolean; is_active?: boolean; [k: string]: unknown }
 interface PoolView {
   id: string; name: string; state: string; deposit: number; max: number; members: number;
   cycle: number; totalCycles: number; cycleDays: number; apy: number;
@@ -144,11 +144,15 @@ export default function PoolDetailPage() {
   const handleDeposit = () => runTx("contribute", [scvU32(Number(id)), scvAddress(address!)]);
   const handleSelect = () => runTx("select_winner", [scvU32(Number(id))]);
   const handleStart = () => runTx("start_pool", [scvU32(Number(id))]);
+  const handleClaimPayout = () => runTx("claim_winner_payout", [scvU32(Number(id)), scvAddress(address!)]);
+  const handleClaimFinal = () => runTx("claim_final", [scvU32(Number(id)), scvAddress(address!)]);
 
   const canJoin = pool.state === "open" && !isParticipant && pool.members < pool.max && !!address;
   const canStart = pool.state === "ready" && isAdmin;
   const canDeposit = pool.state === "active" && isParticipant && !hasPaid;
   const canSelect = pool.state === "active" && isAdmin;
+  const canClaimPayout = isParticipant && Number(memberInfo?.pending_winner_payout || 0) > 0 && !memberInfo?.winner_payout_claimed;
+  const canClaimFinal = pool.state === "completed" && isParticipant && !memberInfo?.gacha_claimed;
 
   const statusLabel = pool.state === "active" ? "ACTIVE" : pool.state === "ready" ? "READY" : pool.state === "open" ? "OPEN" : "COMPLETED";
   const statusColor = pool.state === "active" ? "bg-[#e0f4ff] text-[#0284c7]" : pool.state === "completed" ? "bg-[#e8e1d9] text-[#a8a49a]" : "bg-[#ccfbf1] text-[#0d9488]";
@@ -199,6 +203,8 @@ export default function PoolDetailPage() {
                 {canDeposit && <button onClick={handleDeposit} disabled={loading} className={BTN_PRIMARY + " px-8 disabled:opacity-50"}>{loading ? "..." : `Deposit ${pool.deposit} XLM`}</button>}
                 {canStart && <button onClick={handleStart} disabled={loading} className={BTN_SUCCESS + " px-6 disabled:opacity-50"}>{loading ? "..." : "Start Pool"}</button>}
                 {canSelect && <button onClick={handleSelect} disabled={loading} className={BTN_ORANGE + " px-6 disabled:opacity-50"}>{loading ? "..." : "Select Winner"}</button>}
+                {canClaimPayout && <button onClick={handleClaimPayout} disabled={loading} className={BTN_SUCCESS + " px-6 disabled:opacity-50"}>{loading ? "..." : `Claim Payout ${(Number(memberInfo?.pending_winner_payout || 0) / 10_000_000)} XLM`}</button>}
+                {canClaimFinal && <button onClick={handleClaimFinal} disabled={loading} className={BTN_PRIMARY + " px-6 disabled:opacity-50"}>{loading ? "..." : `Claim Final (${coll} XLM collateral)`}</button>}
               </div>
 
               <div className={CARD_CLASS}><GrainOverlay /><div className="relative z-20 p-6">
