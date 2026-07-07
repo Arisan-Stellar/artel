@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Wallet, Copy, Check, ExternalLink, DollarSign, Zap } from "lucide-react";
+import { Copy, Check, ExternalLink, DollarSign, Zap } from "lucide-react";
 import { useWallet, getWalletLabel } from "@/hooks/WalletContext";
-import { HEADING_FONT } from "@/components/dapp/ArtelHeader";
 
 export default function WalletCard() {
   const { address, walletType } = useWallet();
@@ -19,7 +18,7 @@ export default function WalletCard() {
         const res = await fetch(`https://horizon-testnet.stellar.org/accounts/${address}`);
         if (!res.ok) { if (!cancelled) setTimeout(fetchBalance, 3000); return; }
         const data = await res.json();
-        const xlm = data.balances?.find((b: any) => b.asset_type === "native");
+        const xlm = data.balances?.find((b: { asset_type: string; balance: string }) => b.asset_type === "native");
         if (xlm && !cancelled) setBalance(Number(xlm.balance).toLocaleString(undefined, { maximumFractionDigits: 0 }));
       } catch {}
     };

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Gift, Trophy, Sparkles, Clock, Wallet } from "lucide-react";
+import { Gift, Trophy, Sparkles } from "lucide-react";
 import { HEADING_FONT, LABEL_MONO } from "@/components/dapp/ArtelHeader";
 import { useWallet } from "@/hooks/WalletContext";
 

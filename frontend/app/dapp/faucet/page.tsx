@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Droplets, Check, Clock } from "lucide-react";
-import { HEADING_FONT, LABEL_MONO } from "@/components/dapp/ArtelHeader";
+import { HEADING_FONT } from "@/components/dapp/ArtelHeader";
 import { useWallet } from "@/hooks/WalletContext";
 import WalletCard from "@/components/dapp/WalletCard";
 import AnimatedBadge from "@/components/dapp/AnimatedBadge";
@@ -53,7 +53,7 @@ export default function FaucetPage() {
       } else {
         setError(data.error || "Claim failed");
       }
-    } catch (e: any) { setError(e.message); }
+    } catch (e: unknown) { setError(e instanceof Error ? e.message : String(e)); }
   };
 
   return (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, createElement } from "react";
+import { useState, useEffect } from "react";
 import { Trophy, Medal, Star, Circle, Calendar, Sparkles, Gift, Info, ChevronDown, Wallet } from "lucide-react";
 import AnimatedBadge from "@/components/dapp/AnimatedBadge";
 import { HEADING_FONT, LABEL_MONO } from "@/components/dapp/ArtelHeader";

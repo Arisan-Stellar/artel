@@ -2,14 +2,16 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Layers, Users, DollarSign, Shield, Sparkles, Droplets } from "lucide-react";
-import { LABEL_MONO, HEADING_FONT, BarcodeStrip } from "@/components/dapp/ArtelHeader";
+import { Layers, DollarSign, Shield, Sparkles, Droplets } from "lucide-react";
+import { LABEL_MONO, HEADING_FONT } from "@/components/dapp/ArtelHeader";
 import { getRequiredCollateralFromConfig } from "@/lib/poolMath";
 import AnimatedBadge from "@/components/dapp/AnimatedBadge";
 import { useWallet } from "@/hooks/WalletContext";
 import WalletCard from "@/components/dapp/WalletCard";
 
 interface PoolEntry { id: string; name: string; deposit: number; max: number; members: number; status: "open" | "active" | "completed"; cycle: number; totalCycles: number; cycleDays: number; apy: number; totalFunds: number; yieldAccrued: number; collateralBps: number; }
+interface RawPoolState { state?: string | string[]; member_count?: number | string; current_round?: number | string; total_rounds?: number | string; pool_funds_balance?: number | string; yield_balance?: number | string; is_full?: boolean; }
+interface RawPoolConfig { name?: string; contribution_amount?: number | string; max_members?: number; collateral_ratio_bps?: number; }
 
 
 const STATUS_BADGE: Record<string, { bg: string; label: string }> = {
@@ -26,8 +28,28 @@ const STATUS_HEADER: Record<string, string> = {
 
 type PoolStatus = "open" | "active" | "completed";
 
+function parsePoolState(id: string, state: RawPoolState, config: RawPoolConfig): PoolEntry {
+  const c = config || {};
+  const stateTag = Array.isArray(state.state) ? state.state[0] : state.state;
+  return {
+    id,
+    name: c.name || `Pool ${id.slice(0, 6)}...${id.slice(-4)}`,
+    deposit: Number(c.contribution_amount || 0) / 10_000_000,
+    max: Number(c.max_members || state.total_rounds || 0),
+    members: Number(state.member_count || 0),
+    status: (stateTag === "Active" ? "active" : stateTag === "Completed" ? "completed" : "open") as PoolStatus,
+    cycle: Number(state.current_round || 0),
+    totalCycles: Number(state.total_rounds || 0),
+    cycleDays: 30,
+    apy: 0,
+    totalFunds: Number(state.pool_funds_balance || 0) / 10_000_000,
+    yieldAccrued: Number(state.yield_balance || 0) / 10_000_000,
+    collateralBps: Number(c.collateral_ratio_bps || 12500),
+  };
+}
+
 export default function PoolsPage() {
-  const { address, connecting } = useWallet();
+  const { address } = useWallet();
   const [pools, setPools] = useState<PoolEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | PoolStatus>("all");
@@ -61,26 +83,6 @@ export default function PoolsPage() {
     };
     fetchPools();
   }, []);
-
-  function parsePoolState(id: string, state: any, config: any): PoolEntry {
-    const c = config || {};
-    const stateTag = Array.isArray(state.state) ? state.state[0] : state.state;
-    return {
-      id,
-      name: c.name || `Pool ${id.slice(0, 6)}...${id.slice(-4)}`,
-      deposit: Number(c.contribution_amount || 0) / 10_000_000,
-      max: Number(c.max_members || state.total_rounds || 0),
-      members: Number(state.member_count || 0),
-      status: (stateTag === "Active" ? "active" : stateTag === "Completed" ? "completed" : "open") as PoolStatus,
-      cycle: Number(state.current_round || 0),
-      totalCycles: Number(state.total_rounds || 0),
-      cycleDays: 30,
-      apy: 0,
-      totalFunds: Number(state.pool_funds_balance || 0) / 10_000_000,
-      yieldAccrued: Number(state.yield_balance || 0) / 10_000_000,
-      collateralBps: Number(c.collateral_ratio_bps || 12500),
-    };
-  }
 
   const filtered = filter === "all" ? pools : pools.filter((p) => p.status === filter);
 
@@ -173,7 +175,7 @@ export default function PoolsPage() {
 
           {/* Pool Grid */}
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {filtered.map((pool, idx) => {
+            {filtered.map((pool) => {
               const init = (pool.name || "?")[0].toUpperCase();
               const status = STATUS_BADGE[pool.status];
               const headerColor = STATUS_HEADER[pool.status] || "#fda4af";

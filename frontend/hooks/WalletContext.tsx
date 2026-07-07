@@ -61,8 +61,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         const pubkey = await getPublicKey();
         if (pubkey) { setAddress(pubkey); setWalletType("lobstr"); }
       }
-    } catch (e: any) {
-      console.error(`Connect ${type}:`, e?.message || e);
+    } catch (e: unknown) {
+      console.error(`Connect ${type}:`, e instanceof Error ? e.message : e);
     }
     setConnecting(false);
   }, []);

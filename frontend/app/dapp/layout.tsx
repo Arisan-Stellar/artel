@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import ArtelFooter from "@/components/dapp/ArtelFooter";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { WalletProvider, useWallet } from "@/hooks/WalletContext";
 
@@ -25,7 +26,7 @@ function HeaderInner() {
   return (
     <header className="fixed inset-x-0 top-0 z-[999] flex items-center justify-between px-2 py-3 sm:px-4 sm:py-4 bg-[var(--color-artel)]/90 backdrop-blur-sm">
       <Link href="/dapp/pools" className="group flex items-center gap-1.5 sm:gap-2.5 shrink-0 px-2 py-1 -mx-1 hover:bg-[var(--color-crack)] transition">
-        <img src="/artel-logo.png" alt="ARTEL" className="size-8 sm:size-10 object-contain" />
+        <Image src="/artel-logo.png" alt="ARTEL" width={40} height={40} className="size-8 sm:size-10 object-contain" />
         <span className="flex flex-col items-start leading-none">
           <span className="text-lg sm:text-2xl font-black text-[#0a0a0a] tracking-[0.02em] group-hover:text-white transition" style={{ fontFamily: "'Bebas Neue', system-ui, sans-serif" }}>ARTEL</span>
           <span className="text-[6px] sm:text-[8px] font-semibold uppercase tracking-[0.2em] text-[#0a0a0a] group-hover:text-white transition">ROSCA PROTOCOL</span>

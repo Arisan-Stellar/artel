@@ -24,8 +24,6 @@ pub struct GachaWinner {
     pub prize: i128,
 }
 
-const ANNUAL_GACHA_MONTH: u32 = 6;
-const ANNUAL_GACHA_DAY: u32 = 30;
 const SECONDS_PER_DAY: u64 = 86400;
 const GACHA_GAP: u64 = SECONDS_PER_DAY * 350;  // min ~350 days between gachas
 const GACHA_SALT: u64 = 0x41525433314C;

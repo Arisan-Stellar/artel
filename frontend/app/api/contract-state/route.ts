@@ -2,13 +2,20 @@ import { NextResponse } from "next/server";
 import { RPC_URL, NETWORK_PASSPHRASE, CONTRACT_IDS } from "@/lib/artel-sdk";
 import * as StellarSdk from "@stellar/stellar-sdk";
 
-function toNative(retval: any) {
+function toNative(retval: StellarSdk.xdr.ScVal) {
   const native = StellarSdk.scValToNative(retval);
   return JSON.parse(JSON.stringify(native, (_k, v) => (typeof v === "bigint" ? v.toString() : v)));
 }
 
-async function callView(rpc: any, account: any, fn: string, poolId: number, extraAddr?: string, extraU32?: number) {
-  const args: any[] = [StellarSdk.nativeToScVal(poolId, { type: "u32" })];
+async function callView(
+  rpc: StellarSdk.rpc.Server,
+  account: StellarSdk.Account,
+  fn: string,
+  poolId: number,
+  extraAddr?: string,
+  extraU32?: number,
+) {
+  const args: StellarSdk.xdr.ScVal[] = [StellarSdk.nativeToScVal(poolId, { type: "u32" })];
   if (extraAddr) args.push(StellarSdk.Address.fromString(extraAddr).toScVal());
   if (extraU32 !== undefined) args.push(StellarSdk.nativeToScVal(extraU32, { type: "u32" }));
 
@@ -56,7 +63,8 @@ export async function GET(request: Request) {
     const config = await callView(rpc, account, "get_config", poolId);
 
     return NextResponse.json({ pool_id: poolId, state, config, success: true });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message, pool_id: poolId }, { status: 500 });
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : String(e);
+    return NextResponse.json({ error: message, pool_id: poolId }, { status: 500 });
   }
 }

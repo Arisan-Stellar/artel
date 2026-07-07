@@ -6,7 +6,6 @@ members = ["arisan-contract", "yield-vault", "artel-factory", "artel-faucet"]
 soroban-sdk = "22.0.0"
 
 [profile.release]
-target = "wasm32v1-none"
 opt-level = "z"
 overflow-checks = true
 debug = 0

@@ -1,13 +1,24 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Address, nativeToScVal, xdr } from "@stellar/stellar-sdk";
+import { Address, nativeToScVal } from "@stellar/stellar-sdk";
+import type { rpc as SorobanRpc, xdr } from "@stellar/stellar-sdk";
 import { useWallet } from "./WalletContext";
 
 const RPC_URL = "https://soroban-testnet.stellar.org";
 const TESTNET = "Test SDF Network ; September 2015";
 
-async function waitForTx(rpc: any, hash: string, maxRetries = 20): Promise<any> {
+function errMessage(e: unknown): string {
+  if (typeof e === "string") return e;
+  if (e instanceof Error) return e.message;
+  return JSON.stringify(e);
+}
+
+async function waitForTx(
+  rpc: SorobanRpc.Server,
+  hash: string,
+  maxRetries = 20,
+): Promise<SorobanRpc.Api.GetTransactionResponse> {
   for (let i = 0; i < maxRetries; i++) {
     await new Promise((r) => setTimeout(r, 2000));
     const res = await rpc.getTransaction(hash);
@@ -27,7 +38,7 @@ async function getPubKey(walletType: string): Promise<string | null> {
       const mod = await import("@creit.tech/xbull-wallet-connect");
       const bridge = new mod.xBullWalletConnect();
       const pk = await bridge.connect();
-      (bridge as any).closeConnections?.();
+      bridge.closeConnections();
       return pk || null;
     }
     if (walletType === "lobstr") {
@@ -35,14 +46,15 @@ async function getPubKey(walletType: string): Promise<string | null> {
       return (await getPublicKey()) || null;
     }
     const mod = await import("@stellar/freighter-api");
-    if ((await mod.isConnected() as any)?.isConnected) {
+    const connected = await mod.isConnected();
+    if (connected?.isConnected) {
       const { address } = await mod.getAddress();
       if (address) return address;
     }
     const { address } = await mod.requestAccess();
     return address || null;
   } catch (e) {
-    console.error("Wallet connect error:", e);
+    console.error("Wallet connect error:", errMessage(e));
     return null;
   }
 }
@@ -56,8 +68,8 @@ async function signXdr(walletType: string, txXdr: string, pubKey: string): Promi
   if (walletType === "xbull") {
     const mod = await import("@creit.tech/xbull-wallet-connect");
     const bridge = new mod.xBullWalletConnect();
-    const signedXdr = await bridge.sign({ xdr: txXdr, publicKey: pubKey, network: "TESTNET" } as any);
-    (bridge as any).closeConnections?.();
+    const signedXdr = await bridge.sign({ xdr: txXdr, publicKey: pubKey, network: "TESTNET" });
+    bridge.closeConnections();
     return signedXdr;
   }
   if (walletType === "lobstr") {
@@ -65,10 +77,10 @@ async function signXdr(walletType: string, txXdr: string, pubKey: string): Promi
     return await signTransaction(txXdr);
   }
   const freighter = await import("@stellar/freighter-api");
-  const signed = await freighter.signTransaction(txXdr, { networkPassphrase: TESTNET, address: pubKey } as any);
-  if ((signed as any).error) {
-    const se: any = (signed as any).error;
-    throw new Error("Freighter: " + (se?.message || (typeof se === "string" ? se : JSON.stringify(se))));
+  const signed = await freighter.signTransaction(txXdr, { networkPassphrase: TESTNET, address: pubKey });
+  if (signed.error) {
+    const se = signed.error;
+    throw new Error("Freighter: " + errMessage(se));
   }
   return signed.signedTxXdr;
 }
@@ -79,7 +91,7 @@ export function useFreighterTx() {
   const [error, setError] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
 
-  const invokeContract = useCallback(async (contractId: string, method: string, args: any[]) => {
+  const invokeContract = useCallback(async (contractId: string, method: string, args: xdr.ScVal[]) => {
     setLoading(true); setError(null); setTxHash(null);
     try {
       const wt = walletType === "none" ? "freighter" : walletType;
@@ -108,9 +120,7 @@ export function useFreighterTx() {
 
       const signedTxXdr = await signXdr(wt, txXdr, pubKey);
 
-      const sent = await rpc.sendTransaction(
-        (sdk.TransactionBuilder as any).fromXDR(signedTxXdr, TESTNET)
-      );
+      const sent = await rpc.sendTransaction(sdk.TransactionBuilder.fromXDR(signedTxXdr, TESTNET));
 
       if (sent.status === "ERROR") {
         throw new Error("Send failed: " + JSON.stringify(sent.errorResult));
@@ -119,20 +129,15 @@ export function useFreighterTx() {
         throw new Error("No hash returned from sendTransaction");
       }
 
-      // Wait for final on-chain execution — don't trust PENDING as success.
       const result = await waitForTx(rpc, sent.hash);
       if (result.status === "SUCCESS") {
         setTxHash(sent.hash);
         setLoading(false);
         return { hash: sent.hash, success: true };
       }
-      throw new Error(
-        `Transaction ${result.status}: ` +
-          (result.resultXdr?.toXDR?.("base64") || JSON.stringify(result.status))
-      );
-    } catch (e: any) {
-      const msg = typeof e === "string" ? e : (e?.message || JSON.stringify(e));
-      setError(msg); setLoading(false); return { hash: "", success: false };
+      throw new Error(`Transaction ${result.status}`);
+    } catch (e: unknown) {
+      setError(errMessage(e)); setLoading(false); return { hash: "", success: false };
     }
   }, [walletType, ctxAddress]);
 

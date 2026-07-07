@@ -23,8 +23,8 @@ export async function GET() {
     }
 
     return NextResponse.json({ count, success: true });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message, count: 0 }, { status: 500 });
+  } catch (e: unknown) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : String(e), count: 0 }, { status: 500 });
   }
 }
 

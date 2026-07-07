@@ -54,7 +54,7 @@ export function SceneAkar({ active }: { active: boolean }) {
 
         {/* 24 country cards — 4 columns on desktop, 2 on mobile */}
         <div className="scene-item grid w-full grid-cols-3 gap-1 sm:grid-cols-4 lg:grid-cols-6" style={{ transitionDelay: "180ms" }}>
-          {dict.akar.countries.map((c, i) => (
+          {dict.akar.countries.map((c) => (
             <div
               key={c.name}
               className="brutal-card group relative flex cursor-pointer flex-col items-center gap-0.5 px-1.5 py-1.5 text-center transition hover:-translate-y-1"

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowUpRight } from "lucide-react";
 
 export default function ArtelFooter() {
@@ -8,7 +9,7 @@ export default function ArtelFooter() {
         <div className="grid gap-8 md:grid-cols-3 text-sm">
           <div>
             <Link href="/" className="flex items-center gap-3 mb-3 hover:opacity-80 transition">
-              <img src="/artel-logo.png" alt="ARTEL" className="size-16 object-contain" />
+              <Image src="/artel-logo.png" alt="ARTEL" width={64} height={64} className="size-16 object-contain" />
               <div className="flex flex-col leading-none">
                 <span className="text-3xl font-black" style={{ fontFamily: "'Bebas Neue', system-ui, sans-serif" }}>ARTEL</span>
                 <span className="text-[9px] font-bold uppercase tracking-[0.2em] mt-0.5">ROSCA Protocol</span>

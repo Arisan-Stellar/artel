@@ -22,12 +22,6 @@ pub struct FactoryAdmin {
 #[contract]
 pub struct ArisanFactory;
 
-fn get_admin(env: &Env) -> Address {
-    env.storage().instance()
-        .get(&symbol_short!("admin"))
-        .unwrap()
-}
-
 #[contractimpl]
 impl ArisanFactory {
     pub fn init(env: Env, admin: Address) {

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Wallet, Loader } from "lucide-react";
 import { HEADING_FONT, LABEL_MONO } from "@/components/dapp/ArtelHeader";
 import { useWallet } from "@/hooks/WalletContext";
@@ -10,7 +9,6 @@ import { CONTRACT_IDS, RPC_URL, XLM_CONTRACT, NETWORK_PASSPHRASE } from "@/lib/a
 
 export default function CreateArisanPage() {
   const { address } = useWallet();
-  const router = useRouter();
   const [name, setName] = useState("");
   const [deposit, setDeposit] = useState(25);
   const [max, setMax] = useState(8);
@@ -137,8 +135,8 @@ export default function CreateArisanPage() {
 
                 setResult(String(poolId));
                 setStatus("Pool created! ✅");
-              } catch (e: any) {
-                setError(e.message || "Create failed");
+              } catch (e: unknown) {
+                setError(e instanceof Error ? e.message : "Create failed");
               }
               setDeploying(false);
             }}

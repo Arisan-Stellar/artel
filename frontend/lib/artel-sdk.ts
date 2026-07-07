@@ -29,7 +29,7 @@ export class ArtelClient {
 
   getServer() { return this.server; }
 
-  async getArisanState(contractId: string): Promise<any> {
+  async getArisanState(contractId: string): Promise<StellarSdk.xdr.ScVal | null> {
     try {
       const tx = new StellarSdk.TransactionBuilder(
         new StellarSdk.Account("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF", "0"),
@@ -44,7 +44,7 @@ export class ArtelClient {
       const built = tx.build();
       const sim = await this.server.simulateTransaction(built);
       if (StellarSdk.rpc.Api.isSimulationSuccess(sim)) {
-        return sim.result?.retval;
+        return sim.result?.retval ?? null;
       }
     } catch { /* ignore */ }
     return null;

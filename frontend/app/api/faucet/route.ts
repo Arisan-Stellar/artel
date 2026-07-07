@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ error: data.detail || "Claim failed" }, { status: 500 });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+  } catch (e: unknown) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 });
   }
 }

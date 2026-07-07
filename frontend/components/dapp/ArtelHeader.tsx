@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 
@@ -36,7 +37,7 @@ export default function ArtelHeader({
   return (
     <header className="fixed inset-x-0 top-0 z-[999] flex items-center justify-between px-2 py-3 sm:px-4 sm:py-4 backdrop-blur-sm" data-lenis-prevent>
       <Link href="/" className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
-        <img src="/artel-logo.png" alt="ARTEL" className="size-8 sm:size-10 object-contain" />
+        <Image src="/artel-logo.png" alt="ARTEL" width={40} height={40} className="size-8 sm:size-10 object-contain" />
         <span className="flex flex-col items-start leading-none">
           <span className="text-lg sm:text-2xl font-black text-[#0a0a0a]" style={{ fontFamily: "'Bebas Neue', system-ui, sans-serif", letterSpacing: "0.02em" }}>
             ARTEL

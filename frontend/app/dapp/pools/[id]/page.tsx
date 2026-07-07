@@ -3,17 +3,26 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Sparkles, Shield, Trophy, Gift, Users, Clock, DollarSign, Layers, BarChart3, Share2, Check, Zap } from "lucide-react";
+import { ArrowLeft, Sparkles, Trophy, Gift, Users, Clock, DollarSign, Share2, Check, Zap } from "lucide-react";
 import { CARD_CLASS, BTN_PRIMARY, BTN_ORANGE, BTN_SUCCESS, LABEL_MONO, HEADING_FONT, BarcodeStrip } from "@/components/dapp/ArtelHeader";
-import { getRequiredCollateralFromConfig, getContributionFromConfig, getJoinCostFromConfig, DEFAULT_COLLATERAL_MULTIPLIER } from "@/lib/poolMath";
+import { getRequiredCollateralFromConfig, getJoinCostFromConfig, DEFAULT_COLLATERAL_MULTIPLIER } from "@/lib/poolMath";
 import { useFreighterTx, scvAddress, scvU32 } from "@/hooks/useFreighterTx";
 import { CONTRACT_IDS } from "@/lib/artel-sdk";
 import { useWallet } from "@/hooks/WalletContext";
+import type { xdr } from "@stellar/stellar-sdk";
 
 interface Participant { addr: string; collateral: number; paid: boolean; streak: number; tickets: number; won: boolean }
-type LifecycleState = "open" | "ready" | "active" | "completed";
+interface CycleWinner { cycle: number; addr: string }
+interface ConfigView { name?: string; contribution_amount?: number | string; max_members?: number; collateral_ratio_bps?: number }
+interface MemberView { deposited_this_round?: boolean; [k: string]: unknown }
+interface PoolView {
+  id: string; name: string; state: string; deposit: number; max: number; members: number;
+  cycle: number; totalCycles: number; cycleDays: number; apy: number;
+  yieldCumulative: number; yieldCollateral: number; yieldVault: number;
+  participants: Participant[]; cycleWinners: CycleWinner[];
+}
 
-const FALLBACK_POOL: any = {
+const FALLBACK_POOL: PoolView = {
   id: "", name: "Pool Not Found", state: "open",
   deposit: 0, max: 0, members: 0, cycle: 0, totalCycles: 0, cycleDays: 30, apy: 0,
   yieldCumulative: 0, yieldCollateral: 0, yieldVault: 0,
@@ -27,11 +36,11 @@ function StatBox({ label, value, sub, bg = "bg-[#ccfbf1]", Icon }: { label: stri
 
 export default function PoolDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const [pool, setPool] = useState<any>(FALLBACK_POOL);
-  const [config, setConfig] = useState<any>(null);
+  const [pool, setPool] = useState<PoolView>(FALLBACK_POOL);
+  const [config, setConfig] = useState<ConfigView | null>(null);
   const [adminAddr, setAdminAddr] = useState<string>("");
-  const [memberInfo, setMemberInfo] = useState<any>(null);
-  const [fetching, setFetching] = useState(true);
+  const [memberInfo, setMemberInfo] = useState<MemberView | null>(null);
+  const [, setFetching] = useState(true);
   const { address } = useWallet();
   const { loading, error, txHash, invokeContract } = useFreighterTx();
   const coll = config ? getRequiredCollateralFromConfig(config) : 0;
@@ -52,7 +61,7 @@ export default function PoolDetailPage() {
           : stateTag === "Completed" ? "completed"
           : s.is_full ? "ready" : "open";
 
-        let participants: any[] = [];
+        let participants: Participant[] = [];
         try {
           const lbRes = await fetch(`/api/contract-state?pool_id=${id}&fn=get_leaderboard`);
           const lbData = await lbRes.json();
@@ -64,7 +73,7 @@ export default function PoolDetailPage() {
         } catch {}
 
         const cur = Number(s.current_round || 0);
-        const cycleWinners: any[] = [];
+        const cycleWinners: CycleWinner[] = [];
         for (let r = 1; r < cur; r++) {
           try {
             const wRes = await fetch(`/api/contract-state?pool_id=${id}&fn=get_round_winner&round=${r}`);
@@ -126,7 +135,7 @@ export default function PoolDetailPage() {
   const isParticipant = !!memberInfo;
   const hasPaid = !!memberInfo?.deposited_this_round;
 
-  const runTx = async (method: string, args: any[]) => {
+  const runTx = async (method: string, args: xdr.ScVal[]) => {
     const result = await invokeContract(CONTRACT_IDS.pool, method, args);
     if (result?.success) await refreshAll();
     return result;
@@ -219,7 +228,7 @@ export default function PoolDetailPage() {
               {pool.cycleWinners?.length > 0 && <div className={CARD_CLASS}><GrainOverlay /><div className="relative z-20 p-6">
                 <div className="flex items-center justify-between mb-5"><BarcodeStrip className="w-12 h-4" /><span className="text-xs font-black uppercase tracking-[0.2em] text-[#333333]" style={LABEL_MONO}>winners</span></div>
                 <h2 className="mb-5 text-2xl font-black tracking-[-0.04em]" style={HEADING_FONT}>Cycle Winners</h2>
-                <div className="space-y-2">{pool.cycleWinners.map((w: any) => <div key={w.cycle} className="flex items-center justify-between border-[3px] border-[#0a0a0a] bg-[#fef9c3] p-3"><div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center border-[3px] border-[#0a0a0a] bg-[#f8672d] text-[#0a0a0a] font-black text-sm" style={HEADING_FONT}>{w.cycle}</div><div><p className="text-sm font-bold" style={LABEL_MONO}>Cycle {w.cycle}</p><p className="text-xs font-semibold text-[#333333]">{w.addr}</p></div></div><Trophy className="size-4 text-[#f8672d]" /></div>)}</div>
+                <div className="space-y-2">{pool.cycleWinners.map((w: CycleWinner) => <div key={w.cycle} className="flex items-center justify-between border-[3px] border-[#0a0a0a] bg-[#fef9c3] p-3"><div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center border-[3px] border-[#0a0a0a] bg-[#f8672d] text-[#0a0a0a] font-black text-sm" style={HEADING_FONT}>{w.cycle}</div><div><p className="text-sm font-bold" style={LABEL_MONO}>Cycle {w.cycle}</p><p className="text-xs font-semibold text-[#333333]">{w.addr}</p></div></div><Trophy className="size-4 text-[#f8672d]" /></div>)}</div>
               </div></div>}
             </div>
 
