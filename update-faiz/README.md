@@ -1,7 +1,7 @@
 # 🔧 ARTEL — Full Changelog
 
 > 📁 **Folder:** `update-faiz/` — dokumentasi lengkap perubahan kode
-> **Tanggal:** 06 Juli 2026
+> **Tanggal:** 06–07 Juli 2026
 
 ---
 
@@ -11,7 +11,12 @@
 FASE 0: AUDIT + 7 BUG FIX (Initial)
 FASE 1: ARUSDC TOKEN + API PROXY + FRONTEND REAL DATA
 FASE 2: WINNER ESCROW + PROTOCOL FEE + UNBIASED RNG
+FASE 3: FAIR ROSCA + ALL-IN JOIN + FEE 0% (redesign ekonomi)
+FASE 4: FULL AUDIT (18 fix) + REDEPLOY (key baru) + E2E TEST (net-zero terbukti)
 ```
+
+> 📄 **Tim main/Vercel:** baca `DEPLOY_HANDOVER.md` untuk env vars + checklist deploy.
+
 
 ---
 

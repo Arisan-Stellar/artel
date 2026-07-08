@@ -38,6 +38,18 @@ token:  CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC (XLM native)
 - `/api/deploy` secret exposure — DIHAPUS
 - `/api/factory` dead code — DIHAPUS
 
+### Audit pass 07 Juli (fix baru — jangan tanya ulang)
+- `distribute_collateral_yield` phantom-yield insolvency (baseline=0) → seed `collateral_yield_balance=principal` — FIX
+- Faucet `init` tanpa re-init guard (takeover) → panic if initialized — FIX
+- `select_winner` silent index-0 kalau semua weight 0 → assert `weight_sum>0` — FIX
+- Vault `register_participant` unauth (ticket stuffing) → admin-gated — FIX
+- Gacha zero-in `yield_balance` (dana nyangkut) → kurangi sebesar terdistribusi — FIX
+- `admin_fee_bps` create page 50 → 0 — FIX
+- Pool detail FUNDS/Paid/Winner/tickets pakai data chain asli — FIX
+- Favicon dobel (layout.tsx + app/icon.png) → single-source — FIX
+- useFreighterTx/api hardcode testnet → pakai env config — FIX
+- Secret+password bocor di docs → scrub working tree + redeploy key baru (⚠️ history scrub PENDING koordinasi senior)
+
 ## FIRST STEPS
 1. Baca file ini berurutan:
    - `update-faiz/HANDOVER.md` ← Full context, arsitektur, semua perubahan
@@ -59,23 +71,24 @@ token:  CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC (XLM native)
 4. Jalankan verifikasi:
    ```bash
    cd frontend && npx tsc --noEmit && npx eslint .   # 0 errors, 0 warnings
-   cd ../contracts && cargo test                        # 8/8 arisan, 1/1 factory, 1/1 faucet, 1/1 vault
+   cd ../contracts && cargo test                        # 12/12 (arisan 9, factory 1, faucet 1, vault 1)
    ```
 
 ## WHAT REMAINS (Roadmap)
-1. **Redeploy vault** — Build & deploy ulang vault contract (current sudah init+set_token)
+1. **[GATED] Git history scrub** — secret lama masih di history (commit 2087e38). `git filter-repo` + force-push — TUNGGU koordinasi senior (rewrite shared history). Script: `.omo/plans/phase-f-secret-scrub.md`
 2. **Wire vault.register_participant** — Auto-register member ke vault pas contribute
 3. **Wire vault.receive_yield** — Panggil vault dari distribute_collateral_yield via env.invoke_contract
 4. **Real staking yield** — Integrasi Stellar DEX / Blend untuk yield aktual
 5. **Fee sponsorship (fee-bump)** — Backend service biar user 0 gas fee
 
 ## IMPORTANT NOTES
-- Jangan push ke branch `main`. Semua di `faiz`.
-- Password Freighter user: tanya Bro langsung. Jangan hardcode.
-- Setiap ganti contract → update `NEXT_PUBLIC_CONTRACT_POOL` + `.env.example` + regenerate bindings.
+- Kerja di `faiz`; PR ke `main` (senior yang urus main + Vercel deploy).
+- Admin secret BARU cuma di `frontend/.env.local` (gitignored). Password Freighter: tanya Bro.
+- Setiap ganti contract → update `NEXT_PUBLIC_CONTRACT_POOL` + `.env.example` + `artel-sdk.ts` fallback + regenerate bindings.
 - `package-lock.json` jangan diubah sembarangan.
 - `refs-suivan/` di .gitignore — cloned repo, bukan bagian project.
 - `update-faiz/*.md` sudah di-track git — semua dokumentasi ada di sini.
+- **Deploy Vercel:** lihat `update-faiz/DEPLOY_HANDOVER.md` untuk env vars lengkap.
 
 ## YOUR TASK
 Audit seluruh codebase dengan detail. Cari:

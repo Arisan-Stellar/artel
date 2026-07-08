@@ -60,11 +60,58 @@ XLM native:      CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC
   └── claim_final(pool_id, member) → refund collateral + yield
 ```
 
-### Seed Data (aktif di contract)
+### Seed Data (state saat ini di contract baru)
 ```
-Pool 0: Fair Test (completed, 3 rounds, all members won)
-Pool 1: Community Arisan (open, 1/3, 10 XLM deposit)
-Pool 2: Neighborhood Circle (open, 1/4, 5 XLM deposit)
+Contract baru (redeploy) START KOSONG — pool dibuat via UI (/dapp/create).
+Cek jumlah pool: get_pool_count. Pool diindeks angka urut (0, 1, 2, ...).
+
+Snapshot terakhir (07 Juli):
+  Pool 0: "E2E CLI Test" (Completed, 3 member, 3 ronde, tiap member menang 1x — hasil E2E test)
+  Pool 1: "Faiz 2" (Pending/open, 1/2, 10 XLM deposit, admin Wallet 3)
+```
+
+> ⚠️ **pool_id = angka urut, BUKAN contract address.** Semua pool hidup di dalam SATU
+> contract arisan (`CAHJPUKI…`). URL `/dapp/pools/1` = pool ke-2 (index dari 0), bukan address.
+
+
+---
+
+## 🆕 PASS TERBARU (07 Juli) — Full Audit + Redeploy + E2E
+
+### Integrasi kerjaan senior
+- `origin/main` (branding: favicon 512x512, metadataBase, cleanup import) sudah di-**fast-forward merge** ke `faiz`. Tinggal PR `faiz → main`.
+
+### Contract addresses BARU (redeploy pakai admin key baru — key lama di-abandon)
+```
+arisan: CAHJPUKIDNVHJ2UQBMM65357I67LJXDQZKCC4DXAK6W4KQBXD2SQIQBT
+vault:  CCBQFVC34ZAXC3DTCTKCSIAEWQ4QS67LQQ7F2RL5DSGXJWV2XXY4YAEH (init + set_token OK)
+admin pubkey: GAAA6ZHLYVEK57LIWBOPODU3VPGZXKO6GMQMR2JPEPDHX4R374NN2MTJ
+admin secret: HANYA di frontend/.env.local (gitignored) — JANGAN commit
+```
+
+### Bug audit yang di-fix pass ini
+| Sev | Fix |
+|-----|-----|
+| 🔴 CRITICAL | `distribute_collateral_yield` nganggep principal sebagai yield → insolvency. Fix: seed `collateral_yield_balance = principal`. |
+| 🔴 CRITICAL | Secret deployer + password bocor di git (docs). Fix: scrub dari working tree + redeploy key baru. (History scrub PENDING) |
+| 🟠 HIGH | `admin_fee_bps` create page 50 → 0 (selaras Fee 0%) |
+| 🟠 HIGH | Faucet `init` tanpa re-init guard → takeover. Fix: panic if initialized. |
+| 🟡 MED | Pool detail FUNDS pakai `pool_funds_balance` asli; badge Paid/Winner dari `get_member_info`; tickets dari `get_tickets`; `select_winner` guard weight==0; vault `register_participant` admin-gated; useFreighterTx/api pakai env config |
+| 🟢 LOW | Favicon single-source; hapus dead `getRequiredCollateralAmount`; gacha no-stranded-funds; allowlist rpc/contract-state; factory DEPRECATED |
+
+### E2E test (via CLI Stellar SDK — Freighter extension gak bisa di-automate headless)
+```
+Pool 3-member, 3 ronde:
+  Create (all-in 17.5 XLM) → 3 join (full 3/3) → start (Active) →
+  R1 select (winner M2) → R2 contribute all + select (winner M1, pemenang lama tetap bayar) →
+  R3 contribute + select (winner admin) → COMPLETED (round 4 > 3) →
+  claim payout (3x15 XLM) + claim final (3x12.5 collateral) → contract balance 0 (solvent)
+HASIL: M1 & M2 net ~0 XLM (cuma fee tx) → Fair ROSCA net-zero TERBUKTI on-chain ✅
+```
+
+### Verifikasi
+```
+cargo test: 12/12 ✅ | tsc: 0 ✅ | eslint: 0/0 ✅ | wasm build: clean ✅
 ```
 
 ---
