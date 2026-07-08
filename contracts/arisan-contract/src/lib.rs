@@ -118,6 +118,10 @@ fn required_collateral(config: &ArisanConfig) -> i128 {
         / 10000
 }
 
+// SECURITY (pseudo-random, NOT manipulation-proof): the seed is derived from public
+// ledger data (sequence * timestamp) plus an instance counter, and the admin controls
+// select_winner timing, so winner selection is biasable. A VRF or commit-reveal scheme
+// is required for mainnet-grade fairness.
 fn derive_seed(env: &Env, salt: u64) -> u64 {
     let ledger = env.ledger();
     (ledger.sequence() as u64)
@@ -228,6 +232,7 @@ impl ArisanContract {
         transfer_from(&env, &pool.config.token, &admin, &ct, collateral.saturating_add(contribution));
 
         pool.collateral_balance = collateral;
+        pool.collateral_yield_balance = collateral;
         pool.pool_funds_balance = contribution;
         let info = MemberInfo {
             address: admin.clone(),
@@ -285,6 +290,7 @@ impl ArisanContract {
         transfer_from(&env, &pool.config.token, &member, &ct, collateral.saturating_add(contribution));
 
         pool.collateral_balance = pool.collateral_balance.saturating_add(collateral);
+        pool.collateral_yield_balance = pool.collateral_yield_balance.saturating_add(collateral);
         pool.pool_funds_balance = pool.pool_funds_balance.saturating_add(contribution);
 
         let info = MemberInfo {
@@ -490,6 +496,9 @@ impl ArisanContract {
                 weights.push_back(0);
             }
         }
+
+        let weight_sum: u32 = weights.iter().sum();
+        assert!(weight_sum > 0, "no eligible winner this round");
 
         let idx = weighted_random_index(&env, &weights, 0x4359434C4531) as u32;
         let winner = members.get(idx).unwrap();
@@ -706,11 +715,13 @@ impl ArisanContract {
         }
 
         let ct = contract_id(&env);
+        let mut distributed: i128 = 0;
         for w in winners.iter() {
             transfer_from(&env, &pool.config.token, &ct, &w.address, w.prize_amount);
+            distributed = distributed.saturating_add(w.prize_amount);
         }
 
-        pool.yield_balance = 0;
+        pool.yield_balance = pool.yield_balance.saturating_sub(distributed);
         save_pool(&env, pool_id, &pool);
         env.events().publish((symbol_short!("gachadone"), total_yield), ());
         Ok(winners)
@@ -1158,5 +1169,21 @@ mod test {
             assert_eq!(info.total_contributed, config.contribution_amount * 3, "every member pays all 3 rounds");
             assert_eq!(info.pending_winner_payout, config.contribution_amount * 3, "every member wins one full pot");
         }
+    }
+
+    #[test]
+    #[should_panic(expected = "no new yield to distribute")]
+    fn test_collateral_yield_no_phantom() {
+        let env = Env::default();
+        let (admin, vault, config) = setup(&env, 3);
+        let contract_id = env.register(ArisanContract, ());
+        let client = ArisanContractClient::new(&env, &contract_id);
+
+        env.mock_all_auths();
+        mint_to(&env, &config.token, &admin, 1000_0000000);
+        let pool_id = client.create_pool(&admin, &vault, &config);
+
+        env.mock_all_auths();
+        client.distribute_collateral_yield(&pool_id);
     }
 }

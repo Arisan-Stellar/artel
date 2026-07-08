@@ -1,4 +1,6 @@
 #![no_std]
+//! DEPRECATED: not used in the current "1 contract → many pools" architecture
+//! (pools live inside arisan-contract). Retained for reference only; not deployed or wired.
 use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, Address, Env, Map, String, Vec};
 
 #[contracttype]
