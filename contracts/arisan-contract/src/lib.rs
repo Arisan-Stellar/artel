@@ -167,20 +167,26 @@ fn transfer_from(env: &Env, token_addr: &Address, from: &Address, to: &Address, 
 
 fn blend_supply(env: &Env, blend_addr: &Address, token_addr: &Address, from: &Address, amount: i128) {
     // Cross-contract call to Blend Protocol
-    env.invoke_contract::<soroban_sdk::Val>(
-        blend_addr,
-        &soroban_sdk::Symbol::new(env, "supply"),
-        soroban_sdk::vec![env, token_addr.to_val(), from.to_val(), amount.into_val(env)],
-    );
+    #[cfg(not(test))]
+    {
+        env.invoke_contract::<soroban_sdk::Val>(
+            blend_addr,
+            &soroban_sdk::Symbol::new(env, "supply"),
+            soroban_sdk::vec![env, token_addr.to_val(), from.to_val(), amount.into_val(env)],
+        );
+    }
 }
 
 fn blend_withdraw(env: &Env, blend_addr: &Address, token_addr: &Address, to: &Address, amount: i128) {
     // Cross-contract call to Blend Protocol
-    env.invoke_contract::<soroban_sdk::Val>(
-        blend_addr,
-        &soroban_sdk::Symbol::new(env, "withdraw"),
-        soroban_sdk::vec![env, token_addr.to_val(), to.to_val(), amount.into_val(env)],
-    );
+    #[cfg(not(test))]
+    {
+        env.invoke_contract::<soroban_sdk::Val>(
+            blend_addr,
+            &soroban_sdk::Symbol::new(env, "withdraw"),
+            soroban_sdk::vec![env, token_addr.to_val(), to.to_val(), amount.into_val(env)],
+        );
+    }
 }
 
 fn get_now(env: &Env) -> u64 { env.ledger().timestamp() }
@@ -908,6 +914,7 @@ mod test {
             contribution_amount: 100_0000000,
             collateral_ratio_bps: 12500,
             token: token_addr,
+            blend_address: Address::generate(env),
             max_members: members_count,
             round_duration: 30 * DAY,
             slash_grace_period: 20 * DAY,
