@@ -25,6 +25,7 @@ export default function ArtelFooter() {
                 { label: "Pools", href: "/dapp/pools" },
                 { label: "Simulator", href: "/dapp/simulator" },
                 { label: "Leaderboard", href: "/dapp/leaderboard" },
+                { label: "Yield", href: "/dapp/yield" },
                 { label: "Profile", href: "/dapp/profile" },
                 { label: "FAQ", href: "/dapp/faq" },
                 { label: "Faucet", href: "/dapp/faucet" },

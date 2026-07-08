@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { User, Wallet, Users, Trophy, PiggyBank, Zap, Copy, Award } from "lucide-react";
+import { useState, useEffect } from "react";
+import { User, Wallet, Users, Trophy, PiggyBank, Zap, Copy, Award, Sparkles, Gift } from "lucide-react";
 import { HEADING_FONT, LABEL_MONO } from "@/components/dapp/ArtelHeader";
 import { useWallet } from "@/hooks/WalletContext";
+import { artelClient, CONTRACT_IDS } from "@/lib/artel-sdk";
+import { scValToNative } from "@stellar/stellar-sdk";
 import WalletCard from "@/components/dapp/WalletCard";
 import AnimatedBadge from "@/components/dapp/AnimatedBadge";
 
@@ -31,6 +33,32 @@ export default function ProfilePage() {
   const { address } = useWallet();
   const [copied, setCopied] = useState(false);
   const displayAddr = address ? `${address.slice(0,6)}...${address.slice(-4)}` : "";
+  const [blendStats, setBlendStats] = useState({ staked: "0.0", yield: "0.00", gacha: "0.00" });
+
+  useEffect(() => {
+    if (!address) return;
+    const fetchBlend = async () => {
+      try {
+        const scval = await artelClient.getArisanState(CONTRACT_IDS.pool);
+        if (scval) {
+          const native = scValToNative(scval);
+          const totalStaked = Number(native.blend_btoken_balance) / 10000000;
+          const gacha = Number(native.yield_balance) / 10000000;
+          const totalYield = gacha * 4;
+          setBlendStats({
+            staked: totalStaked.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+            yield: totalYield.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+            gacha: gacha.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+          });
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchBlend();
+    const iv = setInterval(fetchBlend, 5000);
+    return () => clearInterval(iv);
+  }, [address]);
 
   if (!address) {
     return (
@@ -67,6 +95,37 @@ export default function ProfilePage() {
       <section className="px-5 pb-20 md:px-10 lg:px-12">
         <div className="mx-auto max-w-6xl">
           <WalletCard />
+          <div className="mt-12 mb-4 flex items-center gap-3">
+            <div className="w-10 h-3" style={{background:"repeating-linear-gradient(to right, #0a0a0a 0, #0a0a0a 2px, transparent 2px, transparent 4px)"}} />
+            <span className="border-[3px] border-[#0a0a0a] bg-[#38bdf8] px-4 py-1.5 text-sm font-black uppercase tracking-[0.2em] text-[#0a0a0a]" style={LABEL_MONO}>BLEND PROTOCOL VAULT</span>
+            <div className="flex-1 h-[3px] bg-[#0a0a0a]" />
+          </div>
+          <div className="mb-10 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="border-[3px] border-[#0a0a0a] bg-[#fdfdfa] p-5 shadow-[8px_8px_0_#0a0a0a]">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="size-8 rounded-full bg-[#38bdf8] border-[2px] border-[#0a0a0a] flex items-center justify-center"><Sparkles className="size-4 text-white" /></div>
+                <h3 className="font-black" style={HEADING_FONT}>Total Staked</h3>
+              </div>
+              <p className="text-3xl font-black">{blendStats.staked} <span className="text-lg">XLM</span></p>
+              <p className="text-xs font-semibold text-[#333] mt-1">Generating yield in Blend</p>
+            </div>
+            <div className="border-[3px] border-[#0a0a0a] bg-[#fdfdfa] p-5 shadow-[8px_8px_0_#0a0a0a]">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="size-8 rounded-full bg-[#f59e0b] border-[2px] border-[#0a0a0a] flex items-center justify-center"><Gift className="size-4 text-white" /></div>
+                <h3 className="font-black" style={HEADING_FONT}>Yield Generated</h3>
+              </div>
+              <p className="text-3xl font-black text-[#14b8a6]">+ {blendStats.yield} <span className="text-lg">XLM</span></p>
+              <p className="text-xs font-semibold text-[#333] mt-1">From collateral & dues</p>
+            </div>
+            <div className="border-[3px] border-[#0a0a0a] bg-[#fdfdfa] p-5 shadow-[8px_8px_0_#0a0a0a]">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="size-8 rounded-full bg-[#ec4899] border-[2px] border-[#0a0a0a] flex items-center justify-center"><Trophy className="size-4 text-white" /></div>
+                <h3 className="font-black" style={HEADING_FONT}>Gacha Pot (25%)</h3>
+              </div>
+              <p className="text-3xl font-black text-[#8b5cf6]">{blendStats.gacha} <span className="text-lg">XLM</span></p>
+              <p className="text-xs font-semibold text-[#333] mt-1">End of period reward</p>
+            </div>
+          </div>
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {STATS.map((stat, idx) => {
               const Icon = stat.icon;

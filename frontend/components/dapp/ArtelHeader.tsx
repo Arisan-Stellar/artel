@@ -9,6 +9,7 @@ const NAV = [
   { label: "POOLS", href: "/dapp/pools" },
   { label: "SIMULATOR", href: "/dapp/simulator" },
   { label: "LEADERBOARD", href: "/dapp/leaderboard" },
+  { label: "YIELD", href: "/dapp/yield" },
   { label: "PROFILE", href: "/dapp/profile" },
   { label: "FAQ", href: "/dapp/faq" },
   { label: "FAUCET", href: "/dapp/faucet" },
