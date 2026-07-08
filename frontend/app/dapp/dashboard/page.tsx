@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Shield, Star, Clock, Award, Wallet } from "lucide-react";
 import { HEADING_FONT, LABEL_MONO } from "@/components/dapp/ArtelHeader";
 import { useWallet } from "@/hooks/WalletContext";
+import { artelClient, CONTRACT_IDS } from "@/lib/artel-sdk";
+import { scValToNative } from "@stellar/stellar-sdk";
 
 interface MyPool { id: string; name: string; role: string; cycles: string; points: number; tickets: number; status: string }
 
@@ -12,6 +14,7 @@ export default function DashboardPage() {
   const { address } = useWallet();
   const [myPools, setMyPools] = useState<MyPool[]>([]);
   const [loading, setLoading] = useState(true);
+  const [blendStats, setBlendStats] = useState({ staked: "0.0", yield: "0.00", gacha: "0.00" });
 
   const load = useCallback(async () => {
     if (!address) return;
@@ -48,6 +51,32 @@ export default function DashboardPage() {
   }, [address]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (!address) return;
+    const fetchBlend = async () => {
+      try {
+        const scval = await artelClient.getArisanState(CONTRACT_IDS.pool);
+        if (scval) {
+          const native = scValToNative(scval);
+          const totalStaked = Number(native.blend_btoken_balance) / 10000000;
+          const gacha = Number(native.yield_balance) / 10000000;
+          const totalYield = gacha * 4; // Since Gacha Pot is 25% of total collateral yield
+          
+          setBlendStats({
+            staked: totalStaked.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+            yield: totalYield.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+            gacha: gacha.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+          });
+        }
+      } catch (e) {
+        console.error("Failed to fetch blend stats", e);
+      }
+    };
+    fetchBlend();
+    const iv = setInterval(fetchBlend, 5000); // Realtime polling every 5s
+    return () => clearInterval(iv);
+  }, [address]);
 
   if (!address) {
     return (
@@ -86,6 +115,34 @@ export default function DashboardPage() {
             </div>
           ))}
         </div>
+        <h2 className="mt-12 mb-4 text-2xl font-black" style={HEADING_FONT}>Blend Protocol Vault</h2>
+        <div className="mb-10 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="border-[3px] border-[#0a0a0a] bg-[#fdfdfa] p-5 shadow-[8px_8px_0_#0a0a0a]">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="size-8 rounded-full bg-[#38bdf8] border-[2px] border-[#0a0a0a] flex items-center justify-center"><Sparkles className="size-4 text-white" /></div>
+              <h3 className="font-black" style={HEADING_FONT}>Total Staked</h3>
+            </div>
+            <p className="text-3xl font-black">{blendStats.staked} <span className="text-lg">XLM</span></p>
+            <p className="text-xs font-semibold text-[#333] mt-1">Generating yield in Blend</p>
+          </div>
+          <div className="border-[3px] border-[#0a0a0a] bg-[#fdfdfa] p-5 shadow-[8px_8px_0_#0a0a0a]">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="size-8 rounded-full bg-[#f59e0b] border-[2px] border-[#0a0a0a] flex items-center justify-center"><Gift className="size-4 text-white" /></div>
+              <h3 className="font-black" style={HEADING_FONT}>Yield Generated</h3>
+            </div>
+            <p className="text-3xl font-black text-[#14b8a6]">+ {blendStats.yield} <span className="text-lg">XLM</span></p>
+            <p className="text-xs font-semibold text-[#333] mt-1">From collateral & dues</p>
+          </div>
+          <div className="border-[3px] border-[#0a0a0a] bg-[#fdfdfa] p-5 shadow-[8px_8px_0_#0a0a0a]">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="size-8 rounded-full bg-[#ec4899] border-[2px] border-[#0a0a0a] flex items-center justify-center"><Trophy className="size-4 text-white" /></div>
+              <h3 className="font-black" style={HEADING_FONT}>Gacha Pot (25%)</h3>
+            </div>
+            <p className="text-3xl font-black text-[#8b5cf6]">{blendStats.gacha} <span className="text-lg">XLM</span></p>
+            <p className="text-xs font-semibold text-[#333] mt-1">End of period reward</p>
+          </div>
+        </div>
+
         <h2 className="mt-12 mb-4 text-2xl font-black" style={HEADING_FONT}>My Pools</h2>
         {loading ? (
           <p className="text-sm font-semibold text-[#333333]">Loading your pools…</p>
