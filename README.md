@@ -14,7 +14,7 @@
   <img src="https://img.shields.io/badge/next.js-16.2-black?style=flat-square&logo=next.js" alt="Next.js" />
   <img src="https://img.shields.io/badge/react-19.2-61DAFB?style=flat-square&logo=react" alt="React" />
   <img src="https://img.shields.io/badge/contracts-4-FFD700?style=flat-square" alt="Contracts" />
-  <img src="https://img.shields.io/badge/tests-22%2F22%20passing-22C55E?style=flat-square" alt="Tests" />
+  <img src="https://img.shields.io/badge/contracts-12%2F12%20passing-22C55E?style=flat-square" alt="Tests" />
   <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License" />
 </p>
 
@@ -163,12 +163,15 @@ The **40% yield accumulation** across all pools is distributed once a year via t
 
 | Contract | Address | Purpose |
 |----------|---------|---------|
-| **arisan-contract** | `CD5JAD6VAMI2IR7IKNAX42AL4MFBAZM6ZYE6XBDC6AQZ5MNX6JR6GPH5` | Core ROSCA pool lifecycle |
-| **yield-vault** | `CCIUQJ3JZJTCJSJQDOW4QLRVT44TL3Y6WIUBW77AWL56AQEYBMOANOAH` | Annual gacha vault |
-| **artel-factory** | `CCDM7FMETTVS5NO2UOLFNBOYZJTNZLG6QOVONEGJD4YYTVKURAIU6ABE` | Pool registry |
-| **artel-faucet** | `CBOLEQIEDW5M4VWDPWLX6M3WGLRSNXBSLBZZ7KJWHT3RUU3XEGX5AYVX` | Testnet XLM faucet |
+| **arisan-contract** | `CAHJPUKIDNVHJ2UQBMM65357I67LJXDQZKCC4DXAK6W4KQBXD2SQIQBT` | Core ROSCA pool lifecycle |
+| **yield-vault** | `CCBQFVC34ZAXC3DTCTKCSIAEWQ4QS67LQQ7F2RL5DSGXJWV2XXY4YAEH` | Annual gacha vault |
+| **XLM token (SAC)** | `CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC` | Native XLM asset contract |
 
 > **Network:** Stellar Testnet · **RPC:** `https://soroban-testnet.stellar.org` · **Passphrase:** `Test SDF Network ; September 2015`
+>
+> **Model:** 1 contract → banyak pool. `pool_id` = angka urut (`0, 1, 2…`), **bukan** contract address —
+> URL `/dapp/pools/1` = pool ke-2 di dalam contract arisan yang sama.
+> `artel-factory` & `artel-faucet` tidak dipakai di arsitektur saat ini (faucet pakai friendbot).
 
 ---
 
@@ -218,7 +221,7 @@ stellar contract deploy \
 | **State** | Zustand · TanStack React Query |
 | **Animation** | GSAP · Lenis (smooth scroll) · SplitType |
 | **Wallet** | Freighter · Albedo · xBull · Lobstr |
-| **Testing** | Vitest (14 frontend) · `cargo test` (8 contracts) |
+| **Testing** | Vitest (frontend) · `cargo test` (12/12 contracts) |
 | **i18n** | English + Bahasa Indonesia |
 
 ---
@@ -267,16 +270,89 @@ stellar contract deploy \
 
 ## ✅ Testing
 
-```bash
-# Frontend — Vitest (14/14 passing)
-cd frontend && npm test
+### Automated
 
-# Contracts — Rust (8/8 passing)
+```bash
+# Contracts — Rust (12/12 passing: arisan 9, factory 1, faucet 1, vault 1)
 cd contracts && cargo test
 
+# Frontend — type + lint (0 errors, 0 warnings)
+cd frontend && npx tsc --noEmit && npx eslint .
+
+# Frontend — Vitest
+cd frontend && npm test
+
 # Build check
-cd frontend && npm run build   # 10 routes compiled
+cd frontend && npm run build
 ```
+
+---
+
+## 🧪 Manual End-to-End Testing (Full Lifecycle)
+
+Tes lengkap ROSCA dari **create → join → start → contribute → select winner → claim** lewat browser.
+Model ekonomi: **Fair ROSCA** (semua member bayar tiap ronde, termasuk pemenang) + **All-in Join** (collateral + iuran cycle-1 dibayar sekaligus) + **Fee 0%**.
+
+### Prasyarat
+
+1. **Dev server nyala:** `cd frontend && npm run dev` → `http://localhost:3000`
+2. **Freighter extension** terinstall, network di-set **Testnet**.
+3. **2–3 akun Freighter** (klik avatar → "Add account"). Sebut: **Wallet A** (admin), **Wallet B**, **Wallet C**.
+4. **Saldo XLM cukup** tiap wallet (butuh ±20 XLM buat collateral+iuran). Kurang → pakai Faucet (Step 0).
+
+> ℹ️ Karena pakai **All-in Join**, admin auto-jadi member #1 saat create. Jadi pool 3-member butuh admin + 2 join (bukan 3).
+
+### Flow Step-by-Step
+
+| # | Aksi | Wallet | Langkah | Expected ✅ |
+|---|------|--------|---------|-------------|
+| **0** | Faucet | A, B, C | Buka `/dapp/faucet` → **Claim 10,000 XLM** tiap wallet | Saldo naik / "Already funded" |
+| **1** | Create pool | A | `/dapp/create` → Name, Deposit `5`, Max `3` → **Create Pool** → Freighter Confirm | Banner "Pool Created ✅" + pool ID. Admin auto jadi member #1, bayar **17.5 XLM** (12.5 collateral + 5 iuran) |
+| **2** | Join | B | Switch Wallet B → buka pool → **Join · 17.5 XLM** → Confirm | Participants 1→2, tombol Join hilang, "Active Participant" |
+| **3** | Join | C | Switch Wallet C → **Join** → Confirm | Participants 2→3, status **READY** (full 3/3) |
+| **4** | Start | A | Switch Wallet A → **Start Pool** → Confirm | Status **ACTIVE**, cycle 1/3, Pool Funds **15 XLM** (all-in cycle-1) |
+| **5** | Round 1 select | A | **Select Winner** → Confirm (cycle 1 udah kebayar dari all-in) | Winner terpilih, cycle 1→2, Pool Funds → 0 (escrow), muncul di "Cycle Winners" |
+| **6** | Round 2 | A, B, C | Tiap wallet **Deposit 5 XLM** → lalu A **Select Winner** | **Pemenang R1 tetap wajib Deposit** (Fair ROSCA). Winner R2 ≠ R1. Cycle 2→3 |
+| **7** | Round 3 | A, B, C | Tiap wallet **Deposit** → A **Select Winner** | Winner R3 (member terakhir yg belum menang). Status **COMPLETED** (cycle capped 3/3) |
+| **8** | Claim Payout | A, B, C | Tiap wallet: tombol **Claim Payout XX XLM** → Confirm | Escrow (15 XLM/winner) masuk ke wallet, tombol hilang |
+| **9** | Claim Final | A, B, C | Tiap wallet: tombol **Claim Final XX XLM** → Confirm | Collateral (12.5 XLM) balik ke wallet |
+| **10** | Verify | A | `/dapp/dashboard`, `/dapp/leaderboard`, `/dapp/profile` | Data real dari chain (pool, points, tickets, winner) |
+
+### Verifikasi Net-Zero (inti Fair ROSCA)
+
+Tiap member: **bayar** 27.5 XLM (12.5 collateral + 3×5 iuran) → **balik** 27.5 XLM (menang 1 pot 15 + collateral 12.5) → **net 0** (cuma kena fee tx).
+
+Cek saldo on-chain:
+```bash
+curl -s "https://horizon-testnet.stellar.org/accounts/<ADDRESS>" \
+  | python3 -c "import sys,json;print(json.load(sys.stdin)['balances'][0]['balance'],'XLM')"
+```
+
+### CLI Verification (sudah dijalankan — hasil aktual)
+
+Full lifecycle di atas sudah diverifikasi via Stellar CLI di testnet (pool 3-member, 3 ronde):
+
+```
+create (all-in 17.5) → 3 join (full 3/3) → start → R1 winner M2 →
+R2 (M2 tetap bayar) winner M1 → R3 winner admin → COMPLETED (round 4 > 3) →
+claim payout 3×15 + claim final 3×12.5 → contract balance 0 (solvent)
+
+HASIL: Wallet B & C net ~0 XLM (cuma 0.03 fee) → Fair ROSCA net-zero TERBUKTI ✅
+3 winner unik (tiap member menang 1×) · completion logic (>) benar
+```
+
+> 📄 Versi lebih dalam + CLI cheatsheet + troubleshooting: **`update-faiz/TESTING_FLOW.md`**
+
+### Troubleshooting Cepat
+
+| Gejala | Solusi |
+|--------|--------|
+| Freighter popup gak muncul | Unlock Freighter, set network **Testnet** |
+| `❌ txTooLate` | Cek jam sistem (clock skew) |
+| Join gagal "already a member" | Pakai wallet lain |
+| Join gagal "pool is full" | Admin sudah jadi member #1 — cukup 2 join lagi buat pool max-3 |
+| Start Pool gak muncul | Login wallet admin + pool harus READY (full) |
+| Participants gak update | Tunggu ±5 detik (auto-refresh) / reload |
 
 ---
 
