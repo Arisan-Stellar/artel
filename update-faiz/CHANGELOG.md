@@ -275,3 +275,43 @@ FRONTEND:
 3. **Wire vault funding** → distribute_collateral_yield via env.invoke_contract ke vault.receive_yield.
 4. **Real yield (DEX/Blend)** → `deposit_yield()` ada tapi belum ada automation.
 5. **Tombol "Distribute Yield" di FE** → sekarang cuma ada di contract.
+
+---
+
+## Commit 9: Merge `main` (branding senior) + Full Audit Bugfix + Redeploy
+
+**Contract redeploy (fresh admin key, key lama di-abandon karena secret bocor):**
+```
+arisan: CBHNJGTY… → CAHJPUKIDNVHJ2UQBMM65357I67LJXDQZKCC4DXAK6W4KQBXD2SQIQBT
+vault:  CDSHKMKF… → CCBQFVC34ZAXC3DTCTKCSIAEWQ4QS67LQQ7F2RL5DSGXJWV2XXY4YAEH (init + set_token OK)
+admin:  GAAA6ZHLYVEK57LIWBOPODU3VPGZXKO6GMQMR2JPEPDHX4R374NN2MTJ (secret cuma di .env.local)
+```
+
+**Integrasi:** fast-forward `origin/main` → `faiz` (branding: favicon 512x512, metadataBase, cleanup import).
+
+**Contract fixes:**
+| Sev | Fix | File |
+|-----|-----|------|
+| 🔴 CRITICAL | `distribute_collateral_yield` nganggep principal sebagai yield → insolvency. Seed `collateral_yield_balance = principal` di create_pool/join. + `test_collateral_yield_no_phantom` | arisan lib.rs |
+| 🟠 HIGH | Faucet `init` tanpa re-init guard → admin takeover. Tambah panic if initialized. | faucet lib.rs |
+| 🟡 MED | `select_winner` fallback index-0 kalau semua weight 0. Tambah `assert weight_sum>0`. | arisan lib.rs |
+| 🟡 MED | Vault `register_participant` unauth → ticket stuffing. Gate ke admin. | vault lib.rs |
+| 🟢 LOW | Gacha zero-in `yield_balance` → dana sisa nyangkut. Kurangi sebesar yang terbagi. | arisan lib.rs |
+| 🟢 LOW | Factory ditandai DEPRECATED; faucet SAC note; randomness security note. | factory/faucet/arisan |
+
+**Frontend fixes:**
+| Sev | Fix |
+|-----|-----|
+| 🟠 HIGH | `admin_fee_bps` create page 50 → 0 (selaras Fee 0%) |
+| 🟡 MED | Pool detail FUNDS pakai `pool_funds_balance` asli (bukan deposit×members) |
+| 🟡 MED | Participant badge Paid/Winner diisi dari `get_member_info` (dulu selalu false) |
+| 🟡 MED | Tickets "Your Status" pakai `get_tickets` (dulu hardcode 6) |
+| 🟡 MED | `useFreighterTx` + `api/rpc` pakai config dari `artel-sdk` (dulu hardcode testnet) |
+| 🟢 LOW | Favicon single-source (hapus block `icons` di layout.tsx) |
+| 🟢 LOW | Hapus dead `getRequiredCollateralAmount`; cycleDays dari `round_duration`; allowlist rpc/contract-state; NaN guard; surface empty-catch |
+
+**Security remediation (C1):** secret key + password dihapus dari semua docs (`update-faiz/*.md`). Git history scrub (filter-repo) + force-push **PENDING** — nunggu koordinasi senior (rewrite history shared repo).
+
+**Test:** cargo `12/12` ✅ · tsc `0` ✅ · eslint `0/0` ✅ · wasm build clean ✅
+
+> ⚠️ Redeploy me-reset semua pool testnet (fresh, 0 pool). Bikin pool baru via UI (`/dapp/create`).

@@ -42,8 +42,8 @@ Teknologi: Stellar (Soroban SDK 22.0.0) + Rust smart contracts + Next.js 16 fron
 
 ### Contract Addresses (AKTIF — final)
 ```
-arisan-contract: CBHNJGTYNQGLU25WVUMWW4KDB6XUMBTTP6LMAYCVOVFUX6AEHICADACU
-yield-vault:     CDSHKMKFSTQVDDUB3C3USJUOM4MBBYNDF5FMHSLQTOVUMDNXZYZOEBBL
+arisan-contract: CAHJPUKIDNVHJ2UQBMM65357I67LJXDQZKCC4DXAK6W4KQBXD2SQIQBT
+yield-vault:     CCBQFVC34ZAXC3DTCTKCSIAEWQ4QS67LQQ7F2RL5DSGXJWV2XXY4YAEH
 XLM native:      CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC
 ```
 
@@ -181,9 +181,9 @@ Pool 0 "Fair Test" — completed:
 ```typescript
 // frontend/lib/artel-sdk.ts  (env vars with fallback — set NEXT_PUBLIC_* to override)
 CONTRACT_IDS.pool    = process.env.NEXT_PUBLIC_CONTRACT_POOL 
-                     || "CBHNJGTYNQGLU25WVUMWW4KDB6XUMBTTP6LMAYCVOVFUX6AEHICADACU"
+                     || "CAHJPUKIDNVHJ2UQBMM65357I67LJXDQZKCC4DXAK6W4KQBXD2SQIQBT"
 CONTRACT_IDS.vault   = process.env.NEXT_PUBLIC_CONTRACT_VAULT 
-                     || "CDSHKMKFSTQVDDUB3C3USJUOM4MBBYNDF5FMHSLQTOVUMDNXZYZOEBBL"
+                     || "CCBQFVC34ZAXC3DTCTKCSIAEWQ4QS67LQQ7F2RL5DSGXJWV2XXY4YAEH"
 XLM_CONTRACT         = process.env.NEXT_PUBLIC_XLM_CONTRACT 
                      || "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC"
 // NEXT_PUBLIC_NETWORK, NEXT_PUBLIC_RPC_URL, NEXT_PUBLIC_HORIZON_URL
@@ -196,7 +196,7 @@ Atau biarkan default (semua jalan ke Stellar Testnet dengan contract terakhir).
 
 ```env
 # frontend/.env.local (jangan commit!)
-DEPLOYER_SECRET=SAK3TEOBY4A34G7GV7XH4RXUBRLB6YRKUDCMFCJODUBC23NON4H2IGG4
+DEPLOYER_SECRET=<DEPLOYER_SECRET set in frontend/.env.local — NEVER commit>
 ```
 
 ---
@@ -212,11 +212,11 @@ Yang paling mungkin dikerjain selanjutnya:
 ```bash
 stellar contract build && \
 stellar contract deploy --wasm target/wasm32v1-none/release/yield_vault.wasm \
-  --source SAK3TEOBY4A34G7GV7XH4RXUBRLB6YRKUDCMFCJODUBC23NON4H2IGG4 \
+  --source <DEPLOYER_SECRET set in frontend/.env.local — NEVER commit> \
   --network testnet && \
-stellar contract invoke --id <NEW_VAULT> --source SAK3TEOBY4A34G7GV7XH4RXUBRLB6YRKUDCMFCJODUBC23NON4H2IGG4 \
-  --network testnet -- init --admin GBTM35LEI4C4VUF74I3HB7A53SIT7TVN5XAE37HVTYSAZPTCNOBVQ5KM && \
-stellar contract invoke --id <NEW_VAULT> --source SAK3TEOBY4A34G7GV7XH4RXUBRLB6YRKUDCMFCJODUBC23NON4H2IGG4 \
+stellar contract invoke --id <NEW_VAULT> --source <DEPLOYER_SECRET set in frontend/.env.local — NEVER commit> \
+  --network testnet -- init --admin GAAA6ZHLYVEK57LIWBOPODU3VPGZXKO6GMQMR2JPEPDHX4R374NN2MTJ && \
+stellar contract invoke --id <NEW_VAULT> --source <DEPLOYER_SECRET set in frontend/.env.local — NEVER commit> \
   --network testnet -- set_token --token_addr CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC
 ```
 
@@ -263,7 +263,7 @@ frontend/
 ## ⚠️ NOTES PENTING UNTUK AI SELANJUTNYA
 
 1. **Branch `faiz`**, bukan `main`. Semua perubahan ada di `faiz`.
-2. **Wallet password ada di chat** (`Faizfaiz01073`) — jangan hardcode di script, pake env `FRPW` atau minta ulang.
+2. **Wallet password ada di chat** (`<ask Bro directly — do not hardcode>`) — jangan hardcode di script, pake env `FRPW` atau minta ulang.
 3. **Refs-suivan/** adalah cloned repo, bukan bagian project. Udah di .gitignore.
 4. **package-lock.json** jangan diubah — playwright-core diinstall dengan `--no-save` jadi lockfile sync dengan package.json.
 5. **Docs (.md) CHANGELOG, HANDOVER, TESTING_FLOW** ada di `update-faiz/` dan sudah di-track git.

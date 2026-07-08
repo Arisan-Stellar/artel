@@ -8,8 +8,8 @@
 ## 📍 STATE SAAT INI (siap ditest)
 
 ```
-Contract arisan : CDGU6JHHZGF7M3RXUYD7NXLZMZAQWDJ6OAJZ3RRFFAMDDDYJ3ZZVRPQR
-Contract vault  : CDSHKMKFSTQVDDUB3C3USJUOM4MBBYNDF5FMHSLQTOVUMDNXZYZOEBBL
+Contract arisan : CAHJPUKIDNVHJ2UQBMM65357I67LJXDQZKCC4DXAK6W4KQBXD2SQIQBT
+Contract vault  : CCBQFVC34ZAXC3DTCTKCSIAEWQ4QS67LQQ7F2RL5DSGXJWV2XXY4YAEH
 Token           : XLM native (CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC)
 Dev server      : http://localhost:3000
 Wallet lo        : GCY2ZNSQAFWDCPVUBCVYWPF2XR2AAWJGBEZYEU3GWNHSRTNASS7XMZKF (Freighter)
@@ -87,7 +87,7 @@ curl -s "https://horizon-testnet.stellar.org/accounts/<ALAMAT>" | grep -o '"bala
 
 **Verify on-chain:**
 ```bash
-stellar contract invoke --id CDGU6JHHZGF7M3RXUYD7NXLZMZAQWDJ6OAJZ3RRFFAMDDDYJ3ZZVRPQR \
+stellar contract invoke --id CAHJPUKIDNVHJ2UQBMM65357I67LJXDQZKCC4DXAK6W4KQBXD2SQIQBT \
   --source-account <SECRET> --network testnet -- get_state --pool_id 2
 # member_count: 1, state: Pending, is_full: false
 ```
@@ -114,7 +114,7 @@ stellar contract invoke --id CDGU6JHHZGF7M3RXUYD7NXLZMZAQWDJ6OAJZ3RRFFAMDDDYJ3ZZ
 
 **Verify on-chain:**
 ```bash
-stellar contract invoke --id CDGU6JHHZGF7M3RXUYD7NXLZMZAQWDJ6OAJZ3RRFFAMDDDYJ3ZZVRPQR \
+stellar contract invoke --id CAHJPUKIDNVHJ2UQBMM65357I67LJXDQZKCC4DXAK6W4KQBXD2SQIQBT \
   --source-account <SECRET> --network testnet -- get_state --pool_id 0
 # member_count naik, collateral_balance naik
 ```
@@ -138,7 +138,7 @@ stellar contract invoke --id CDGU6JHHZGF7M3RXUYD7NXLZMZAQWDJ6OAJZ3RRFFAMDDDYJ3ZZ
 
 **Expected:**
 - ✅ Tiap deposit sukses, "Your Status → Paid: YES".
-- ✅ Pool funds naik (net setelah fee 0.5%). Yield balance naik (fee).
+- ✅ Pool funds naik penuh (fee 0% — semua kontribusi masuk pot).
 - ✅ Setelah bayar, tombol Deposit hilang buat wallet itu.
 
 ### E3 — Select Winner (admin only)
@@ -154,7 +154,7 @@ stellar contract invoke --id CDGU6JHHZGF7M3RXUYD7NXLZMZAQWDJ6OAJZ3RRFFAMDDDYJ3ZZ
 ### E4 — Claim Winner Payout (pull-based)
 > Belum ada tombol khusus di FE (roadmap). Verify via CLI kalau mau:
 ```bash
-stellar contract invoke --id CDGU6JHHZGF7M3RXUYD7NXLZMZAQWDJ6OAJZ3RRFFAMDDDYJ3ZZVRPQR \
+stellar contract invoke --id CAHJPUKIDNVHJ2UQBMM65357I67LJXDQZKCC4DXAK6W4KQBXD2SQIQBT \
   --source-account <WINNER_SECRET> --network testnet -- claim_winner_payout --pool_id <ID> --member <WINNER_ADDR>
 ```
 **Expected:** ✅ Dana escrow ketransfer ke winner, saldo winner naik.
@@ -178,7 +178,7 @@ stellar contract invoke --id CDGU6JHHZGF7M3RXUYD7NXLZMZAQWDJ6OAJZ3RRFFAMDDDYJ3ZZ
 ## 🔍 CLI CHEATSHEET (verifikasi cepat)
 
 ```bash
-C=CDGU6JHHZGF7M3RXUYD7NXLZMZAQWDJ6OAJZ3RRFFAMDDDYJ3ZZVRPQR
+C=CAHJPUKIDNVHJ2UQBMM65357I67LJXDQZKCC4DXAK6W4KQBXD2SQIQBT
 S=<SECRET_KEY_LO>
 
 # Jumlah pool
@@ -214,7 +214,7 @@ stellar contract invoke --id $C --source-account $S --network testnet -- get_rou
 | C | Create pool + auto-join | ☐ |
 | D | Join pool + auto-refresh | ☐ |
 | E1 | Start pool (admin, READY) | ☐ |
-| E2 | Contribute (fee 0.5% masuk) | ☐ |
+| E2 | Contribute (fee 0% — full masuk pot) | ☐ |
 | E3 | Select winner (weighted) | ☐ |
 | E3b | Ronde 2 jalan (no deadlock) | ☐ |
 | E4 | Claim payout (CLI) | ☐ |
