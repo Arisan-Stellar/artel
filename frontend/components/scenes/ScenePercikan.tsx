@@ -1,91 +1,93 @@
 "use client";
 
-import { useDict } from "@/lib/i18n/LocaleProvider";
-import { Spark } from "@/components/graphics/Motifs";
-import { GhostWord } from "@/components/ui/GhostWord";
-import { SceneDecor } from "@/components/ui/SceneDecor";
-import { ScenePanel } from "@/components/ui/ScenePanel";
-import { ArrowRight } from "lucide-react";
+import s from "./ScenePercikan.module.css";
 
 export function ScenePercikan({ active }: { active: boolean }) {
-  const dict = useDict();
   return (
     <div
-      className={`relative flex h-full w-full items-center justify-center px-6 ${active ? "is-active" : ""}`}
+      className={`relative flex h-full w-full items-center justify-center overflow-hidden px-5 sm:px-10 ${active ? "is-active" : ""}`}
     >
-      <SceneDecor accent="var(--color-amber)" />
       <div
-        className="absolute inset-0 -z-10"
-        style={{ background: "radial-gradient(60% 60% at 22% 30%, rgba(217,130,0,0.12), transparent 70%)" }}
+        className="pointer-events-none absolute inset-0 -z-10"
+        style={{
+          backgroundColor: "#fafafa",
+          backgroundImage:
+            "linear-gradient(to right, rgba(232,24,10,0.12) 1px, transparent 1px), linear-gradient(to bottom, rgba(232,24,10,0.12) 1px, transparent 1px)",
+          backgroundSize: "40px 40px",
+        }}
         aria-hidden
       />
-      <GhostWord
-        text="LEDGER"
-        stroke="rgba(217,130,0,0.13)"
-        className="right-[1%] bottom-[8%] text-[19vw]"
-      />
 
-      <div className="relative z-10 mx-auto grid w-full max-w-5xl items-center gap-10 md:grid-cols-[1.4fr_1fr]">
-        <div>
-          <ScenePanel accent="var(--color-amber)" className="scene-item rotate-[0.8deg]" style={{ transitionDelay: "60ms" }}>
-            <p
-              className="brutal-badge mb-5 inline-block px-3 py-1.5 text-xs"
-              style={{ background: "var(--color-amber)", color: "var(--color-ink)" }}
-            >
-              {dict.percikan.kicker}
-            </p>
-            <h2 className="font-display text-3xl leading-[1.02] sm:text-5xl">
-              {dict.percikan.title}
-            </h2>
-            <p className="mt-5 max-w-xl border-l-[5px] border-[var(--color-amber)] pl-4 text-base leading-relaxed text-[var(--color-muted)]">
-              {dict.percikan.body}
-            </p>
-          </ScenePanel>
-
-          {/* Before → After bridge cards */}
-          <div className="scene-item mt-7 flex flex-wrap items-start gap-4 sm:gap-6" style={{ transitionDelay: "320ms" }}>
-            {dict.percikan.points.map((p, i) => {
-              const [before, after] = p.split(" → ");
-              const c = ["var(--color-crack)", "var(--color-artel)", "var(--color-teal)"][i % 3];
-              return (
-                <div
-                  key={p}
-                  className="flex items-center gap-2 sm:gap-3"
-                  style={{ marginTop: `${[18, 0, 10][i % 3]}px` }}
-                >
-                  <div className="w-[100px] border-[3px] border-[var(--color-text)] bg-[var(--color-surface)] px-2 py-3 text-center brutal-shadow">
-                    <span className="block text-[10px] font-bold uppercase tracking-wider text-[var(--color-muted)]" style={{ textDecoration: "line-through" }}>{before}</span>
-                  </div>
-                  <ArrowRight className="size-4 shrink-0 text-[var(--color-muted)]" />
-                  <div className="w-[100px] border-[3px] border-[var(--color-text)] px-2 py-3 text-center brutal-shadow" style={{ background: c, color: c === "var(--color-crack)" ? "#fff" : "var(--color-ink)" }}>
-                    <span className="block text-[10px] font-bold uppercase tracking-wider">{after}</span>
-                  </div>
-                </div>
-              );
-            })}
+      {/* Abstergo loader — top right */}
+      <div className="absolute top-[24%] right-[20%] pointer-events-none z-10">
+        <div className="border-[3px] border-[#1a1a1a] bg-white px-10 py-8" style={{ boxShadow: "5px 5px 0 #1a1a1a" }}>
+        <div className={s["ui-abstergo"]}>
+          <div className={s["abstergo-loader"]}>
+            <div />
+            <div />
+            <div />
+          </div>
+          <div className={s["ui-text"]}>
+            <span>ARISAN</span>
+            <span className={s["ui-dot"]} />
+            <span className={s["ui-dot"]} />
+            <span className={s["ui-dot"]} />
           </div>
         </div>
+        </div>
+      </div>
 
-        <div
-          className="scene-item relative mx-auto hidden md:block"
-          style={{ transitionDelay: "340ms" }}
+      <div className="absolute inset-0 flex items-center justify-end pr-[3%] pointer-events-none opacity-30">
+        <h1
+          className="font-display text-[clamp(5rem,18vw,14rem)] leading-none tracking-[-0.04em]"
+          style={{ color: "transparent", WebkitTextStroke: "1.5px rgba(212,160,23,0.2)" }}
         >
-          <div
-            className="spark-glow pointer-events-none absolute left-1/2 top-1/2 h-44 w-44 rounded-full blur-2xl"
-            style={{ background: "var(--color-amber)" }}
-            aria-hidden
-          />
-          <Spark className="spark-anim relative w-[clamp(160px,18vw,240px)]" color="var(--color-amber)" />
-          <span
-            className="float-y absolute right-0 top-3 h-3 w-3 rounded-full border-2 border-[var(--color-text)]"
-            style={{ background: "var(--color-artel)" }}
-            aria-hidden
-          />
-          <span
-            className="float-y absolute -left-2 bottom-8 h-2.5 w-2.5 rounded-full border-2 border-[var(--color-text)]"
-            style={{ background: "var(--color-teal)", animationDelay: "0.9s" }}
-            aria-hidden
-          />
+          ARISAN
+        </h1>
+      </div>
+
+      <div className="relative z-10 w-full max-w-5xl grid grid-cols-1 gap-8 pt-10">
+        <div>
+          <span className="inline-block border-[3px] border-[#1a1a1a] bg-[#d4a017] px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-[#1a1a1a]" style={{ boxShadow: "4px 4px 0 #1a1a1a" }}>
+            Indonesia
+          </span>
+          <h2 className="font-display mt-4 text-[clamp(1.5rem,4vw,2.5rem)] leading-[1.05] text-[#1a1a1a]">
+            Arisan, <span style={{ color: "#e8180a" }}>The Original ROSCA</span>
+          </h2>
+          <p className="mt-4 max-w-md text-sm leading-relaxed text-[#666]">
+            Arisan is Indonesia&apos;s centuries-old rotating savings circle — a trusted, community-driven financial practice woven into the fabric of daily life.
+          </p>
+          <p className="mt-3 max-w-md text-sm leading-relaxed text-[#666]">
+            Unlike formal banking, arisan runs on <strong>pure social trust</strong>. No contracts, no collateral, no interest. Members contribute a fixed amount each cycle, and one member takes the entire pool — rotating until everyone has won.
+          </p>
+
+          <div className="mt-8 border-[3px] border-[#1a1a1a] bg-white p-4" style={{ boxShadow: "4px 4px 0 #d4a017" }}>
+            <p className="text-xs font-bold text-[#1a1a1a]">
+              Arisan is more than finance — it&apos;s <span style={{ color: "#e8180a" }}>social glue</span>, predominantly <span style={{ color: "#e8180a" }}>women-led</span>, scales across <span style={{ color: "#e8180a" }}>all income levels</span>, and has survived <span style={{ color: "#e8180a" }}>centuries of change</span>.
+            </p>
+          </div>
+
+          <div className="mt-4 border-[3px] border-[#1a1a1a] bg-white p-4" style={{ boxShadow: "4px 4px 0 #e8180a" }}>
+            <p className="text-[10px] font-black uppercase tracking-wider text-[#e8180a] mb-3">ROSCA works beautifully — but it still has these 4 problems</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-xs font-bold text-[#1a1a1a]">🏃 Run-away Risk</p>
+                <p className="text-[10px] leading-relaxed text-[#999] mt-0.5">Treasurer or winner disappears with pooled money. Zero recourse — trust alone is the only enforcement.</p>
+              </div>
+              <div>
+                <p className="text-xs font-bold text-[#1a1a1a]">💤 Idle Money</p>
+                <p className="text-[10px] leading-relaxed text-[#999] mt-0.5">Cash sits idle between cycles. Zero interest earned while members wait their turn.</p>
+              </div>
+              <div>
+                <p className="text-xs font-bold text-[#1a1a1a]">📋 Manual Records</p>
+                <p className="text-[10px] leading-relaxed text-[#999] mt-0.5">Paper notebooks & WhatsApp groups. Errors, forgotten payments, and disputes are inevitable.</p>
+              </div>
+              <div>
+                <p className="text-xs font-bold text-[#1a1a1a]">🔒 Limited Scale</p>
+                <p className="text-[10px] leading-relaxed text-[#999] mt-0.5">Bound by geography and social circles. Can&apos;t grow beyond people you know personally.</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

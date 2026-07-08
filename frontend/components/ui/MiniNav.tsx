@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useDict } from "@/lib/i18n/LocaleProvider";
 import { LanguageSwitch } from "./LanguageSwitch";
 import { Button } from "./Button";
@@ -9,24 +10,32 @@ export const DAPP_URL = "/dapp/pools";
 
 export function MiniNav() {
   const dict = useDict();
+  const pathname = usePathname();
+  const isLanding = pathname === "/";
+
   return (
     <header className="fixed inset-x-0 top-0 z-50 flex items-center justify-between px-5 py-4 sm:px-8">
-      <a href="#hero" className="flex items-center gap-3" aria-label="ARTEL home" data-cursor>
-        <span className="grid h-10 w-10 place-items-center border-[3px] border-[var(--color-text)] bg-[var(--color-surface)] brutal-shadow">
-          <ArtelLogo size={28} priority className="h-7 w-7" />
-        </span>
-        <span className="flex flex-col items-start leading-none">
-          <span className="font-display text-2xl">ARTEL</span>
-          <span className="text-[8px] font-semibold uppercase tracking-[0.3em]" style={{ color: "var(--color-muted)" }}>
-            ROSCA Protocol
+      {!isLanding && (
+        <a href="#hero" className="flex items-center gap-3" aria-label="ARTEL home" data-cursor>
+          <span className="grid h-10 w-10 place-items-center border-[3px] border-[var(--color-text)] bg-[var(--color-surface)] brutal-shadow">
+            <ArtelLogo size={28} priority className="h-7 w-7" />
           </span>
-        </span>
-      </a>
+          <span className="flex flex-col items-start leading-none">
+            <span className="font-display text-2xl">ARTEL</span>
+            <span className="text-[8px] font-semibold uppercase tracking-[0.3em]" style={{ color: "var(--color-muted)" }}>
+              ROSCA Protocol
+            </span>
+          </span>
+        </a>
+      )}
+      {isLanding && <div />}
       <div className="flex items-center gap-3">
         <LanguageSwitch />
-        <Button href={DAPP_URL} className="px-4 py-2">
-          {dict.nav.launch} <span aria-hidden>→</span>
-        </Button>
+        {!isLanding && (
+          <Button href={DAPP_URL} className="px-4 py-2">
+            {dict.nav.launch} <span aria-hidden>→</span>
+          </Button>
+        )}
       </div>
     </header>
   );
