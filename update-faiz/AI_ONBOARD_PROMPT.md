@@ -75,7 +75,7 @@ token:  CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC (XLM native)
    ```
 
 ## WHAT REMAINS (Roadmap)
-1. **[GATED] Git history scrub** — secret lama masih di history (commit 2087e38). `git filter-repo` + force-push — TUNGGU koordinasi senior (rewrite shared history). Script: `.omo/plans/phase-f-secret-scrub.md`
+1. **[DEFERRED] Git history scrub** — secret lama masih di history (commit 2087e38) TAPI sudah di-neutralisasi: key di-rotate + akun lama di-account-merge (sekarang HTTP 404, worthless). Force-push scrub cuma perlu kalau go public/mainnet. Script: `.omo/plans/phase-f-secret-scrub.md`
 2. **Wire vault.register_participant** — Auto-register member ke vault pas contribute
 3. **Wire vault.receive_yield** — Panggil vault dari distribute_collateral_yield via env.invoke_contract
 4. **Real staking yield** — Integrasi Stellar DEX / Blend untuk yield aktual

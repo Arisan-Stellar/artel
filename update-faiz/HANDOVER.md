@@ -93,7 +93,7 @@ admin secret: HANYA di frontend/.env.local (gitignored) — JANGAN commit
 | Sev | Fix |
 |-----|-----|
 | 🔴 CRITICAL | `distribute_collateral_yield` nganggep principal sebagai yield → insolvency. Fix: seed `collateral_yield_balance = principal`. |
-| 🔴 CRITICAL | Secret deployer + password bocor di git (docs). Fix: scrub dari working tree + redeploy key baru. (History scrub PENDING) |
+| 🔴 CRITICAL | Secret deployer + password bocor di git (docs). Fix: scrub working tree + rotate key baru + account-merge akun lama (skrg HTTP 404, worthless). History scrub deferred (cuma perlu kalau public/mainnet) |
 | 🟠 HIGH | `admin_fee_bps` create page 50 → 0 (selaras Fee 0%) |
 | 🟠 HIGH | Faucet `init` tanpa re-init guard → takeover. Fix: panic if initialized. |
 | 🟡 MED | Pool detail FUNDS pakai `pool_funds_balance` asli; badge Paid/Winner dari `get_member_info`; tickets dari `get_tickets`; `select_winner` guard weight==0; vault `register_participant` admin-gated; useFreighterTx/api pakai env config |

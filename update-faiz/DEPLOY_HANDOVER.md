@@ -44,19 +44,17 @@ Deployer secret CUMA dipakai lokal buat deploy contract, ada di `.env.local` (gi
 
 ---
 
-## 3. 🔒 SATU HAL YANG BELUM SELESAI (butuh keputusan tim)
+## 3. 🔒 SECRET LAMA — SUDAH DI-NEUTRALISASI (no action needed)
 
-**Secret deployer LAMA masih ada di git history** (commit `2087e38`, file `HANDOVER.md` versi lama).
-- Working tree & docs sekarang **udah bersih** (secret dihapus).
-- Key lama udah **di-abandon** — contract baru pakai admin key baru, jadi walau bocor, key lama gak ngontrol apa-apa lagi.
-- **TAPI** history publik masih nyimpen secret string-nya.
+Secret deployer LAMA sempat bocor di git history (commit `2087e38`). **Sudah ditangani tanpa force-push:**
 
-**Aksi yang disarankan (butuh koordinasi 1 tim karena rewrite history):**
-1. Semua orang commit/push dulu, terus berhenti kerja sebentar.
-2. Jalankan script scrub: `.omo/plans/phase-f-secret-scrub.md` (`git filter-repo` + force-push).
-3. Semua re-clone / `git reset --hard origin/<branch>`.
+1. ✅ **Rotate** — contract baru pakai admin key baru (`GAAA6ZHL…`), secret cuma di `.env.local` (gitignored).
+2. ✅ **Account merge** — akun key lama (`GBTM35LE…`) sudah di-**close** (account-merge ke key baru). Cek: akun lama sekarang **HTTP 404 (gak ada)**.
+   → Secret bocor sekarang ngontrol akun yang **tidak eksis** = 100% worthless.
 
-Kalau tim mau, ini bisa dilakuin setelah PR merge. Kalau nggak, minimal key lama udah aman (abandoned).
+**Jadi: TIDAK perlu force-push / rewrite history untuk testnet.** Secret string-nya masih ada di history publik tapi udah gak ngontrol apa-apa.
+
+**Kapan perlu scrub history (force-push)?** Cuma kalau repo mau jadi **public showcase permanen** atau naik **mainnet** — biar bersih total. Script siap di `.omo/plans/phase-f-secret-scrub.md` (butuh koordinasi 1 tim). Untuk sekarang: **deferred, aman.**
 
 ---
 
@@ -67,7 +65,7 @@ Kalau tim mau, ini bisa dilakuin setelah PR merge. Kalau nggak, minimal key lama
 - [ ] Trigger redeploy Vercel (auto kalau merge ke main, atau manual)
 - [ ] Buka production URL → `/dapp/pools` → pastikan pool ke-load dari contract baru
 - [ ] Smoke test: connect Freighter (testnet) → create pool → join → berfungsi
-- [ ] (Opsional) Koordinasi tim buat git history scrub (bagian #3)
+- [ ] (Opsional, cuma kalau go public/mainnet) git history scrub — lihat bagian #3
 
 ---
 
