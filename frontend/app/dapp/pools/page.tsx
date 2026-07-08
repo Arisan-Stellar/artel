@@ -11,7 +11,7 @@ import WalletCard from "@/components/dapp/WalletCard";
 
 interface PoolEntry { id: string; name: string; deposit: number; max: number; members: number; status: "open" | "active" | "completed"; cycle: number; totalCycles: number; cycleDays: number; apy: number; totalFunds: number; yieldAccrued: number; collateralBps: number; }
 interface RawPoolState { state?: string | string[]; member_count?: number | string; current_round?: number | string; total_rounds?: number | string; pool_funds_balance?: number | string; yield_balance?: number | string; is_full?: boolean; }
-interface RawPoolConfig { name?: string; contribution_amount?: number | string; max_members?: number; collateral_ratio_bps?: number; }
+interface RawPoolConfig { name?: string; contribution_amount?: number | string; max_members?: number; collateral_ratio_bps?: number; round_duration?: number | string; }
 
 
 const STATUS_BADGE: Record<string, { bg: string; label: string }> = {
@@ -40,7 +40,7 @@ function parsePoolState(id: string, state: RawPoolState, config: RawPoolConfig):
     status: (stateTag === "Active" ? "active" : stateTag === "Completed" ? "completed" : "open") as PoolStatus,
     cycle: Number(state.current_round || 0),
     totalCycles: Number(state.total_rounds || 0),
-    cycleDays: 30,
+    cycleDays: Math.round(Number(c.round_duration || 2592000) / 86400),
     apy: 0,
     totalFunds: Number(state.pool_funds_balance || 0) / 10_000_000,
     yieldAccrued: Number(state.yield_balance || 0) / 10_000_000,
@@ -68,7 +68,7 @@ export default function PoolsPage() {
                 const res = await fetch(`/api/contract-state?pool_id=${poolId}`);
                 const data = await res.json();
                 if (data.success) return parsePoolState(String(poolId), data.state, data.config);
-              } catch {}
+              } catch (e) { console.warn(`fetch pool ${poolId} failed:`, e); }
               return null;
             })
           );
@@ -77,7 +77,7 @@ export default function PoolsPage() {
           setLoading(false);
           return;
         }
-      } catch {}
+      } catch (e) { console.warn("fetchPools failed:", e); }
       setPools([]);
       setLoading(false);
     };
