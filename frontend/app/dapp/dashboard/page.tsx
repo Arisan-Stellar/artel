@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Shield, Star, Clock, Award, Wallet } from "lucide-react";
+import { Shield, Star, Clock, Award, Wallet, Sparkles, Gift, Trophy } from "lucide-react";
 import { HEADING_FONT, LABEL_MONO } from "@/components/dapp/ArtelHeader";
 import { useWallet } from "@/hooks/WalletContext";
 import { artelClient, CONTRACT_IDS } from "@/lib/artel-sdk";

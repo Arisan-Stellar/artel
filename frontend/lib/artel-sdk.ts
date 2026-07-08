@@ -10,13 +10,14 @@ export const NETWORK_PASSPHRASE = process.env.NEXT_PUBLIC_NETWORK_PASSPHRASE || 
 // Smart contract IDs — override via NEXT_PUBLIC_CONTRACT_* env vars
 export const CONTRACT_IDS = {
   factory: process.env.NEXT_PUBLIC_CONTRACT_FACTORY || "CCDM7FMETTVS5NO2UOLFNBOYZJTNZLG6QOVONEGJD4YYTVKURAIU6ABE",
-  pool: process.env.NEXT_PUBLIC_CONTRACT_POOL || "CDV5Y63JCK3WOU4KFNPXGYDYM3OESNCGWDVN4SZVA45A7IYSIH6Q3ORR",
+  pool: process.env.NEXT_PUBLIC_CONTRACT_POOL || "CB32XWMTXDRDRAMKLG2TMLC6CC737W6LNHV2IMVKVHBPNPHFZZCJU234",
   vault: process.env.NEXT_PUBLIC_CONTRACT_VAULT || "CCIUQJ3JZJTCJSJQDOW4QLRVT44TL3Y6WIUBW77AWL56AQEYBMOANOAH",
   faucet: process.env.NEXT_PUBLIC_CONTRACT_FAUCET || "CBOLEQIEDW5M4VWDPWLX6M3WGLRSNXBSLBZZ7KJWHT3RUU3XEGX5AYVX",
 };
 
 // XLM native token contract
 export const XLM_CONTRACT = process.env.NEXT_PUBLIC_XLM_CONTRACT || "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC";
+export const ARUSDC_TOKEN = process.env.NEXT_PUBLIC_ARUSDC_TOKEN || "CDIPE45CR3NJ35EISVQAJ55NLM3POKT5Y3SIJQ4RSPE7DK4ZVY3YZ52R";
 
 export interface ArisanConfig {
   name: string;
@@ -35,7 +36,7 @@ export class ArtelClient {
 
   getServer() { return this.server; }
 
-  async getArisanState(contractId: string): Promise<StellarSdk.xdr.ScVal | null> {
+  async getArisanState(contractId: string, poolId: number = 0): Promise<StellarSdk.xdr.ScVal | null> {
     try {
       const tx = new StellarSdk.TransactionBuilder(
         new StellarSdk.Account("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF", "0"),
@@ -44,7 +45,7 @@ export class ArtelClient {
       const op = StellarSdk.Operation.invokeContractFunction({
         contract: contractId,
         function: "get_state",
-        args: [],
+        args: [StellarSdk.nativeToScVal(poolId, { type: "u32" })],
       });
       tx.addOperation(op);
       const built = tx.build();

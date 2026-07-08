@@ -5,7 +5,7 @@ import { getRequiredCollateralFromConfig } from "@/lib/poolMath";
 import { Wallet, Loader } from "lucide-react";
 import { HEADING_FONT, LABEL_MONO } from "@/components/dapp/ArtelHeader";
 import { useWallet } from "@/hooks/WalletContext";
-import { Client, networks } from "@/bindings/arisan-pool/src/index";
+import { Client } from "@/bindings/arisan-pool/src/index";
 import { CONTRACT_IDS, RPC_URL, XLM_CONTRACT, NETWORK_PASSPHRASE } from "@/lib/artel-sdk";
 
 export default function CreateArisanPage() {
@@ -90,7 +90,7 @@ export default function CreateArisanPage() {
                 setStatus("Building create pool transaction...");
                 const poolClient = new Client({
                   rpcUrl: RPC_URL,
-                  networkPassphrase: networks.testnet.networkPassphrase,
+                  networkPassphrase: NETWORK_PASSPHRASE,
                   contractId: CONTRACT_IDS.pool,
                   publicKey: pubKey.address,
                 });
@@ -111,6 +111,7 @@ export default function CreateArisanPage() {
                     early_points: 3,
                     mid_points: 1,
                     late_penalty: -2,
+                    blend_address: XLM_CONTRACT,
                   },
                 });
 
