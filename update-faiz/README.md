@@ -129,14 +129,15 @@ FASE 4: FULL AUDIT (18 fix) + REDEPLOY (key baru) + E2E TEST (net-zero terbukti)
 │                     TEST RESULTS                       │
 ├────────────────────────────────────────────────────────┤
 │                                                        │
-│  CONTRACTS (cargo test):      8/8  ✅  ALL PASS        │
-│  ├─ arisan-contract:          5/5  ✅                  │
+│  CONTRACTS (cargo test):    12/12  ✅  ALL PASS        │
+│  ├─ arisan-contract:          9/9  ✅                  │
 │  ├─ artel-factory:            1/1  ✅                  │
 │  ├─ artel-faucet:             1/1  ✅                  │
 │  └─ yield-vault:              1/1  ✅                  │
 │                                                        │
-│  FRONTEND (npm test):        9/14  ✅  9 PASS          │
-│                              5/14  ⚠️  pre-existing    │
+│  FRONTEND (tsc + eslint):    0 err / 0 warn ✅         │
+│                                                        │
+│  E2E lifecycle (testnet):   net-zero TERBUKTI ✅       │
 │                                                        │
 │  TypeScript (tsc --noEmit):   0 errors ✅               │
 │                                                        │

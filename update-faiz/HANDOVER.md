@@ -185,7 +185,7 @@ Ditemukan & di-fix oleh Sisyphus:
 
 ---
 
-## 🧪 TEST RESULTS (paling akhir)
+## 🧪 TEST RESULTS (historis — commit 5; state TERBARU lihat "PASS TERBARU" di atas: cargo 12/12)
 
 ```
 Contracts: 8/8 ✅ (arisan 8, factory 1, faucet 1, vault 1)
@@ -219,7 +219,7 @@ Pool 0 "Fair Test" — completed:
 |------|-------|
 | **Real staking yield** (Stellar DEX/Blend) | `distribute_collateral_yield` masih phantom. Butuh DEX integration atau admin `deposit_yield`. |
 | **Vault annual gacha** | Annual gacha di vault contract udah bisa payout, tapi butuh admin `register_participant` + funding. Belum di-wire ke arisan. |
-| **Redeploy vault contract** | Vault contract saat ini masih yang lama (`CCIUQJ...`), dengan bug `ANNUAL_GACHA_MONTH/DAY` const dihapus. Butuh deploy ulang + init + set_token. |
+| ~~**Redeploy vault contract**~~ ✅ DONE | Vault baru `CCBQFVC3…` (init + set_token). arisan juga redeploy `CAHJPUKI…`. |
 
 ---
 

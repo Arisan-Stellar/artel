@@ -48,7 +48,7 @@ token:  CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC (XLM native)
 - Pool detail FUNDS/Paid/Winner/tickets pakai data chain asli — FIX
 - Favicon dobel (layout.tsx + app/icon.png) → single-source — FIX
 - useFreighterTx/api hardcode testnet → pakai env config — FIX
-- Secret+password bocor di docs → scrub working tree + redeploy key baru (⚠️ history scrub PENDING koordinasi senior)
+- Secret+password bocor di docs → scrub working tree + rotate key baru + account-merge akun lama (skrg HTTP 404, worthless). History scrub deferred (cuma perlu kalau public/mainnet)
 
 ## FIRST STEPS
 1. Baca file ini berurutan:

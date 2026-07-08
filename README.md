@@ -302,7 +302,46 @@ Model ekonomi: **Fair ROSCA** (semua member bayar tiap ronde, termasuk pemenang)
 
 > ℹ️ Karena pakai **All-in Join**, admin auto-jadi member #1 saat create. Jadi pool 3-member butuh admin + 2 join (bukan 3).
 
-### Flow Step-by-Step
+### Flow Visual (pool 3-member, 3 ronde)
+
+```
+                          ┌───────────────────────────────────────────────┐
+                          │  0. FAUCET — A,B,C claim 10.000 XLM (testnet)  │
+                          └───────────────────────┬───────────────────────┘
+                                                  ▼
+   ╔══════════════ SETUP ══════════════╗
+   ║ 1. A: CREATE POOL  (deposit 5, max 3)                                  ║
+   ║    └─ A auto-join member#1, bayar 17.5 XLM (12.5 collat + 5 iuran)     ║
+   ║ 2. B: JOIN 17.5 XLM   → 2/3                                            ║
+   ║ 3. C: JOIN 17.5 XLM   → 3/3  (READY)                                   ║
+   ╚═══════════════════════════════════╝
+                                                  ▼
+   ╔══════════════ START ══════════════╗
+   ║ 4. A: START POOL  → ACTIVE, cycle 1/3, Pool Funds = 15 XLM (all-in)    ║
+   ╚═══════════════════════════════════╝
+                                                  ▼
+   ╔════════ LOOP tiap ronde (r = 1..3) ════════╗
+   ║  ┌─ ronde 1: pot udah keisi dari all-in ──┐ ║
+   ║  │  ronde 2 & 3: A,B,C DEPOSIT 5 XLM each │ ║   ◄── FAIR ROSCA:
+   ║  │     (pemenang lama TETAP wajib bayar)  │ ║       pemenang lama
+   ║  └────────────────────────────────────────┘ ║       ikut bayar lagi
+   ║  A: SELECT WINNER → pot 15 XLM ke escrow     ║
+   ║     cycle r → r+1                            ║
+   ╚══════════════════════════════════════════════╝
+                                                  ▼
+   ┌─ setelah 3 select (current_round 4 > total 3) ─┐
+   │            POOL → COMPLETED                     │
+   └─────────────────────────────────────────────────┘
+                                                  ▼
+   ╔══════════════ PAYOUT ══════════════╗
+   ║ 8. A,B,C: CLAIM PAYOUT  → escrow 15 XLM/pemenang ke wallet             ║
+   ║ 9. A,B,C: CLAIM FINAL   → collateral 12.5 XLM balik ke wallet          ║
+   ╚═══════════════════════════════════╝
+                                                  ▼
+              ✅ NET-ZERO: bayar 27.5 = balik 27.5 (menang 15 + collat 12.5)
+```
+
+### Flow Step-by-Step (tabel detail)
 
 | # | Aksi | Wallet | Langkah | Expected ✅ |
 |---|------|--------|---------|-------------|
