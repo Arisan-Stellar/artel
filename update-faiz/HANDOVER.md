@@ -42,8 +42,8 @@ Teknologi: Stellar (Soroban SDK 22.0.0) + Rust smart contracts + Next.js 16 fron
 
 ### Contract Addresses (AKTIF — final)
 ```
-arisan-contract: CBHNJGTYNQGLU25WVUMWW4KDB6XUMBTTP6LMAYCVOVFUX6AEHICADACU
-yield-vault:     CDSHKMKFSTQVDDUB3C3USJUOM4MBBYNDF5FMHSLQTOVUMDNXZYZOEBBL
+arisan-contract: CAHJPUKIDNVHJ2UQBMM65357I67LJXDQZKCC4DXAK6W4KQBXD2SQIQBT
+yield-vault:     CCBQFVC34ZAXC3DTCTKCSIAEWQ4QS67LQQ7F2RL5DSGXJWV2XXY4YAEH
 XLM native:      CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC
 ```
 
@@ -60,11 +60,58 @@ XLM native:      CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC
   └── claim_final(pool_id, member) → refund collateral + yield
 ```
 
-### Seed Data (aktif di contract)
+### Seed Data (state saat ini di contract baru)
 ```
-Pool 0: Fair Test (completed, 3 rounds, all members won)
-Pool 1: Community Arisan (open, 1/3, 10 XLM deposit)
-Pool 2: Neighborhood Circle (open, 1/4, 5 XLM deposit)
+Contract baru (redeploy) START KOSONG — pool dibuat via UI (/dapp/create).
+Cek jumlah pool: get_pool_count. Pool diindeks angka urut (0, 1, 2, ...).
+
+Snapshot terakhir (07 Juli):
+  Pool 0: "E2E CLI Test" (Completed, 3 member, 3 ronde, tiap member menang 1x — hasil E2E test)
+  Pool 1: "Faiz 2" (Pending/open, 1/2, 10 XLM deposit, admin Wallet 3)
+```
+
+> ⚠️ **pool_id = angka urut, BUKAN contract address.** Semua pool hidup di dalam SATU
+> contract arisan (`CAHJPUKI…`). URL `/dapp/pools/1` = pool ke-2 (index dari 0), bukan address.
+
+
+---
+
+## 🆕 PASS TERBARU (07 Juli) — Full Audit + Redeploy + E2E
+
+### Integrasi kerjaan senior
+- `origin/main` (branding: favicon 512x512, metadataBase, cleanup import) sudah di-**fast-forward merge** ke `faiz`. Tinggal PR `faiz → main`.
+
+### Contract addresses BARU (redeploy pakai admin key baru — key lama di-abandon)
+```
+arisan: CAHJPUKIDNVHJ2UQBMM65357I67LJXDQZKCC4DXAK6W4KQBXD2SQIQBT
+vault:  CCBQFVC34ZAXC3DTCTKCSIAEWQ4QS67LQQ7F2RL5DSGXJWV2XXY4YAEH (init + set_token OK)
+admin pubkey: GAAA6ZHLYVEK57LIWBOPODU3VPGZXKO6GMQMR2JPEPDHX4R374NN2MTJ
+admin secret: HANYA di frontend/.env.local (gitignored) — JANGAN commit
+```
+
+### Bug audit yang di-fix pass ini
+| Sev | Fix |
+|-----|-----|
+| 🔴 CRITICAL | `distribute_collateral_yield` nganggep principal sebagai yield → insolvency. Fix: seed `collateral_yield_balance = principal`. |
+| 🔴 CRITICAL | Secret deployer + password bocor di git (docs). Fix: scrub working tree + rotate key baru + account-merge akun lama (skrg HTTP 404, worthless). History scrub deferred (cuma perlu kalau public/mainnet) |
+| 🟠 HIGH | `admin_fee_bps` create page 50 → 0 (selaras Fee 0%) |
+| 🟠 HIGH | Faucet `init` tanpa re-init guard → takeover. Fix: panic if initialized. |
+| 🟡 MED | Pool detail FUNDS pakai `pool_funds_balance` asli; badge Paid/Winner dari `get_member_info`; tickets dari `get_tickets`; `select_winner` guard weight==0; vault `register_participant` admin-gated; useFreighterTx/api pakai env config |
+| 🟢 LOW | Favicon single-source; hapus dead `getRequiredCollateralAmount`; gacha no-stranded-funds; allowlist rpc/contract-state; factory DEPRECATED |
+
+### E2E test (via CLI Stellar SDK — Freighter extension gak bisa di-automate headless)
+```
+Pool 3-member, 3 ronde:
+  Create (all-in 17.5 XLM) → 3 join (full 3/3) → start (Active) →
+  R1 select (winner M2) → R2 contribute all + select (winner M1, pemenang lama tetap bayar) →
+  R3 contribute + select (winner admin) → COMPLETED (round 4 > 3) →
+  claim payout (3x15 XLM) + claim final (3x12.5 collateral) → contract balance 0 (solvent)
+HASIL: M1 & M2 net ~0 XLM (cuma fee tx) → Fair ROSCA net-zero TERBUKTI on-chain ✅
+```
+
+### Verifikasi
+```
+cargo test: 12/12 ✅ | tsc: 0 ✅ | eslint: 0/0 ✅ | wasm build: clean ✅
 ```
 
 ---
@@ -138,7 +185,7 @@ Ditemukan & di-fix oleh Sisyphus:
 
 ---
 
-## 🧪 TEST RESULTS (paling akhir)
+## 🧪 TEST RESULTS (historis — commit 5; state TERBARU lihat "PASS TERBARU" di atas: cargo 12/12)
 
 ```
 Contracts: 8/8 ✅ (arisan 8, factory 1, faucet 1, vault 1)
@@ -172,7 +219,7 @@ Pool 0 "Fair Test" — completed:
 |------|-------|
 | **Real staking yield** (Stellar DEX/Blend) | `distribute_collateral_yield` masih phantom. Butuh DEX integration atau admin `deposit_yield`. |
 | **Vault annual gacha** | Annual gacha di vault contract udah bisa payout, tapi butuh admin `register_participant` + funding. Belum di-wire ke arisan. |
-| **Redeploy vault contract** | Vault contract saat ini masih yang lama (`CCIUQJ...`), dengan bug `ANNUAL_GACHA_MONTH/DAY` const dihapus. Butuh deploy ulang + init + set_token. |
+| ~~**Redeploy vault contract**~~ ✅ DONE | Vault baru `CCBQFVC3…` (init + set_token). arisan juga redeploy `CAHJPUKI…`. |
 
 ---
 
@@ -181,9 +228,9 @@ Pool 0 "Fair Test" — completed:
 ```typescript
 // frontend/lib/artel-sdk.ts  (env vars with fallback — set NEXT_PUBLIC_* to override)
 CONTRACT_IDS.pool    = process.env.NEXT_PUBLIC_CONTRACT_POOL 
-                     || "CBHNJGTYNQGLU25WVUMWW4KDB6XUMBTTP6LMAYCVOVFUX6AEHICADACU"
+                     || "CAHJPUKIDNVHJ2UQBMM65357I67LJXDQZKCC4DXAK6W4KQBXD2SQIQBT"
 CONTRACT_IDS.vault   = process.env.NEXT_PUBLIC_CONTRACT_VAULT 
-                     || "CDSHKMKFSTQVDDUB3C3USJUOM4MBBYNDF5FMHSLQTOVUMDNXZYZOEBBL"
+                     || "CCBQFVC34ZAXC3DTCTKCSIAEWQ4QS67LQQ7F2RL5DSGXJWV2XXY4YAEH"
 XLM_CONTRACT         = process.env.NEXT_PUBLIC_XLM_CONTRACT 
                      || "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC"
 // NEXT_PUBLIC_NETWORK, NEXT_PUBLIC_RPC_URL, NEXT_PUBLIC_HORIZON_URL
@@ -196,7 +243,7 @@ Atau biarkan default (semua jalan ke Stellar Testnet dengan contract terakhir).
 
 ```env
 # frontend/.env.local (jangan commit!)
-DEPLOYER_SECRET=SAK3TEOBY4A34G7GV7XH4RXUBRLB6YRKUDCMFCJODUBC23NON4H2IGG4
+DEPLOYER_SECRET=<DEPLOYER_SECRET set in frontend/.env.local — NEVER commit>
 ```
 
 ---
@@ -212,11 +259,11 @@ Yang paling mungkin dikerjain selanjutnya:
 ```bash
 stellar contract build && \
 stellar contract deploy --wasm target/wasm32v1-none/release/yield_vault.wasm \
-  --source SAK3TEOBY4A34G7GV7XH4RXUBRLB6YRKUDCMFCJODUBC23NON4H2IGG4 \
+  --source <DEPLOYER_SECRET set in frontend/.env.local — NEVER commit> \
   --network testnet && \
-stellar contract invoke --id <NEW_VAULT> --source SAK3TEOBY4A34G7GV7XH4RXUBRLB6YRKUDCMFCJODUBC23NON4H2IGG4 \
-  --network testnet -- init --admin GBTM35LEI4C4VUF74I3HB7A53SIT7TVN5XAE37HVTYSAZPTCNOBVQ5KM && \
-stellar contract invoke --id <NEW_VAULT> --source SAK3TEOBY4A34G7GV7XH4RXUBRLB6YRKUDCMFCJODUBC23NON4H2IGG4 \
+stellar contract invoke --id <NEW_VAULT> --source <DEPLOYER_SECRET set in frontend/.env.local — NEVER commit> \
+  --network testnet -- init --admin GAAA6ZHLYVEK57LIWBOPODU3VPGZXKO6GMQMR2JPEPDHX4R374NN2MTJ && \
+stellar contract invoke --id <NEW_VAULT> --source <DEPLOYER_SECRET set in frontend/.env.local — NEVER commit> \
   --network testnet -- set_token --token_addr CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC
 ```
 
@@ -263,7 +310,7 @@ frontend/
 ## ⚠️ NOTES PENTING UNTUK AI SELANJUTNYA
 
 1. **Branch `faiz`**, bukan `main`. Semua perubahan ada di `faiz`.
-2. **Wallet password ada di chat** (`Faizfaiz01073`) — jangan hardcode di script, pake env `FRPW` atau minta ulang.
+2. **Wallet password ada di chat** (`<ask Bro directly — do not hardcode>`) — jangan hardcode di script, pake env `FRPW` atau minta ulang.
 3. **Refs-suivan/** adalah cloned repo, bukan bagian project. Udah di .gitignore.
 4. **package-lock.json** jangan diubah — playwright-core diinstall dengan `--no-save` jadi lockfile sync dengan package.json.
 5. **Docs (.md) CHANGELOG, HANDOVER, TESTING_FLOW** ada di `update-faiz/` dan sudah di-track git.

@@ -14,6 +14,9 @@ pub struct ArtelFaucet;
 #[contractimpl]
 impl ArtelFaucet {
     pub fn init(env: Env, admin: Address, token_addr: Address) {
+        if env.storage().instance().has(&FaucetKey::Admin) {
+            panic!("already initialized");
+        }
         admin.require_auth();
         env.storage().instance().set(&FaucetKey::Admin, &admin);
         env.storage().instance().set(&FaucetKey::Token, &token_addr);
@@ -30,6 +33,8 @@ impl ArtelFaucet {
 
         let token_addr: Address = env.storage().instance().get(&FaucetKey::Token).unwrap();
         let sac = token::StellarAssetClient::new(&env, &token_addr);
+        // mint() only succeeds if THIS contract is the SAC admin/issuer of token_addr.
+        // For XLM native it is not, so the app funds accounts via friendbot (see frontend /api/faucet).
         sac.mint(&to, &CLAIM_AMOUNT);
 
         env.events().publish((symbol_short!("claimed"), CLAIM_AMOUNT), to.clone());

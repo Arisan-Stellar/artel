@@ -4,9 +4,10 @@ import { useState, useCallback } from "react";
 import { Address, nativeToScVal } from "@stellar/stellar-sdk";
 import type { rpc as SorobanRpc, xdr } from "@stellar/stellar-sdk";
 import { useWallet } from "./WalletContext";
+import { RPC_URL, NETWORK_PASSPHRASE, NETWORK } from "@/lib/artel-sdk";
 
-const RPC_URL = "https://soroban-testnet.stellar.org";
-const TESTNET = "Test SDF Network ; September 2015";
+const WALLET_NET_ALBEDO = NETWORK === "public" ? "public" : "testnet";
+const WALLET_NET_XBULL = NETWORK === "public" ? "PUBLIC" : "TESTNET";
 
 function errMessage(e: unknown): string {
   if (typeof e === "string") return e;
@@ -62,13 +63,13 @@ async function getPubKey(walletType: string): Promise<string | null> {
 async function signXdr(walletType: string, txXdr: string, pubKey: string): Promise<string> {
   if (walletType === "albedo") {
     const albedo = (await import("@albedo-link/intent")).default;
-    const res = await albedo.tx({ xdr: txXdr, network: "testnet", pubkey: pubKey });
+    const res = await albedo.tx({ xdr: txXdr, network: WALLET_NET_ALBEDO, pubkey: pubKey });
     return res.signed_envelope_xdr;
   }
   if (walletType === "xbull") {
     const mod = await import("@creit.tech/xbull-wallet-connect");
     const bridge = new mod.xBullWalletConnect();
-    const signedXdr = await bridge.sign({ xdr: txXdr, publicKey: pubKey, network: "TESTNET" });
+    const signedXdr = await bridge.sign({ xdr: txXdr, publicKey: pubKey, network: WALLET_NET_XBULL });
     bridge.closeConnections();
     return signedXdr;
   }
@@ -77,7 +78,7 @@ async function signXdr(walletType: string, txXdr: string, pubKey: string): Promi
     return await signTransaction(txXdr);
   }
   const freighter = await import("@stellar/freighter-api");
-  const signed = await freighter.signTransaction(txXdr, { networkPassphrase: TESTNET, address: pubKey });
+  const signed = await freighter.signTransaction(txXdr, { networkPassphrase: NETWORK_PASSPHRASE, address: pubKey });
   if (signed.error) {
     const se = signed.error;
     throw new Error("Freighter: " + errMessage(se));
@@ -104,7 +105,7 @@ export function useFreighterTx() {
 
       const tx = new sdk.TransactionBuilder(account, {
         fee: sdk.BASE_FEE,
-        networkPassphrase: TESTNET,
+        networkPassphrase: NETWORK_PASSPHRASE,
       })
         .addOperation(sdk.Operation.invokeContractFunction({ contract: contractId, function: method, args }))
         .setTimeout(300)
@@ -120,7 +121,7 @@ export function useFreighterTx() {
 
       const signedTxXdr = await signXdr(wt, txXdr, pubKey);
 
-      const sent = await rpc.sendTransaction(sdk.TransactionBuilder.fromXDR(signedTxXdr, TESTNET));
+      const sent = await rpc.sendTransaction(sdk.TransactionBuilder.fromXDR(signedTxXdr, NETWORK_PASSPHRASE));
 
       if (sent.status === "ERROR") {
         throw new Error("Send failed: " + JSON.stringify(sent.errorResult));

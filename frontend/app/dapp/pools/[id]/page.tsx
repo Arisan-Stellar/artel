@@ -13,11 +13,12 @@ import type { xdr } from "@stellar/stellar-sdk";
 
 interface Participant { addr: string; collateral: number; paid: boolean; streak: number; tickets: number; won: boolean }
 interface CycleWinner { cycle: number; addr: string }
-interface ConfigView { name?: string; contribution_amount?: number | string; max_members?: number; collateral_ratio_bps?: number }
+interface ConfigView { name?: string; contribution_amount?: number | string; max_members?: number; collateral_ratio_bps?: number; round_duration?: number | string }
 interface MemberView { deposited_this_round?: boolean; has_won?: boolean; pending_winner_payout?: number | string; winner_payout_claimed?: boolean; gacha_claimed?: boolean; is_active?: boolean; [k: string]: unknown }
 interface PoolView {
   id: string; name: string; state: string; deposit: number; max: number; members: number;
   cycle: number; totalCycles: number; cycleDays: number; apy: number;
+  poolFunds: number;
   yieldCumulative: number; yieldCollateral: number; yieldVault: number;
   participants: Participant[]; cycleWinners: CycleWinner[];
 }
@@ -25,6 +26,7 @@ interface PoolView {
 const FALLBACK_POOL: PoolView = {
   id: "", name: "Pool Not Found", state: "open",
   deposit: 0, max: 0, members: 0, cycle: 0, totalCycles: 0, cycleDays: 30, apy: 0,
+  poolFunds: 0,
   yieldCumulative: 0, yieldCollateral: 0, yieldVault: 0,
   participants: [], cycleWinners: [],
 };
@@ -40,6 +42,7 @@ export default function PoolDetailPage() {
   const [config, setConfig] = useState<ConfigView | null>(null);
   const [adminAddr, setAdminAddr] = useState<string>("");
   const [memberInfo, setMemberInfo] = useState<MemberView | null>(null);
+  const [myTickets, setMyTickets] = useState(0);
   const [, setFetching] = useState(true);
   const { address } = useWallet();
   const { loading, error, txHash, invokeContract } = useFreighterTx();
@@ -67,11 +70,24 @@ export default function PoolDetailPage() {
           const lbRes = await fetch(`/api/contract-state?pool_id=${id}&fn=get_leaderboard`);
           const lbData = await lbRes.json();
           if (lbData.success && Array.isArray(lbData.get_leaderboard)) {
-            participants = lbData.get_leaderboard.map(([addr, tickets]: [string, number]) => ({
-              addr, tickets: Number(tickets), paid: false, collateral: 0, streak: 0, won: false,
-            }));
+            participants = await Promise.all(
+              lbData.get_leaderboard.map(async ([addr, tickets]: [string, number]) => {
+                let paid = false, won = false, streak = 0, collateral = 0;
+                try {
+                  const miData = await fetch(`/api/contract-state?pool_id=${id}&fn=get_member_info&member=${addr}`).then((r) => r.json());
+                  const mi = miData.success ? miData.get_member_info : null;
+                  if (mi) {
+                    paid = !!mi.deposited_this_round;
+                    won = !!mi.has_won;
+                    streak = Number(mi.current_streak || 0);
+                    collateral = Number(mi.collateral_amount || 0) / 10_000_000;
+                  }
+                } catch (e) { console.warn("participant member_info failed:", e); }
+                return { addr, tickets: Number(tickets), paid, collateral, streak, won };
+              })
+            );
           }
-        } catch {}
+        } catch (e) { console.warn("loadPool leaderboard failed:", e); }
 
         const cur = Number(s.current_round || 0);
         const cycleWinners: CycleWinner[] = [];
@@ -82,7 +98,7 @@ export default function PoolDetailPage() {
             if (wData.success && wData.get_round_winner) {
               cycleWinners.push({ cycle: r, addr: wData.get_round_winner });
             }
-          } catch {}
+          } catch (e) { console.warn(`get_round_winner round ${r} failed:`, e); }
         }
 
         setPool({
@@ -94,8 +110,9 @@ export default function PoolDetailPage() {
           members: Number(s.member_count || 0),
           cycle: cur,
           totalCycles: Number(s.total_rounds || 0),
-          cycleDays: 30,
+          cycleDays: Math.round(Number(c.round_duration || 2592000) / 86400),
           apy: 0,
+          poolFunds: Number(s.pool_funds_balance || 0) / 10_000_000,
           yieldCumulative: Number(s.yield_balance || 0) / 10_000_000,
           yieldCollateral: Number(s.collateral_yield_balance || 0) / 10_000_000,
           yieldVault: 0,
@@ -103,7 +120,7 @@ export default function PoolDetailPage() {
           cycleWinners,
         });
       }
-    } catch {}
+    } catch (e) { console.warn("loadPool failed:", e); }
     setFetching(false);
   }, [id]);
 
@@ -113,16 +130,19 @@ export default function PoolDetailPage() {
       const res = await fetch(`/api/contract-state?pool_id=${id}&fn=get_admin`);
       const data = await res.json();
       if (data.success && data.get_admin) setAdminAddr(data.get_admin);
-    } catch {}
+    } catch (e) { console.warn("loadAdmin failed:", e); }
   }, [id]);
 
   const loadMembership = useCallback(async () => {
-    if (!id || !address) { setMemberInfo(null); return; }
+    if (!id || !address) { setMemberInfo(null); setMyTickets(0); return; }
     try {
-      const res = await fetch(`/api/contract-state?pool_id=${id}&fn=get_member_info&member=${address}`);
-      const data = await res.json();
-      setMemberInfo(data.success ? data.get_member_info : null);
-    } catch { setMemberInfo(null); }
+      const [miData, tixData] = await Promise.all([
+        fetch(`/api/contract-state?pool_id=${id}&fn=get_member_info&member=${address}`).then((r) => r.json()),
+        fetch(`/api/contract-state?pool_id=${id}&fn=get_tickets&member=${address}`).then((r) => r.json()),
+      ]);
+      setMemberInfo(miData.success ? miData.get_member_info : null);
+      setMyTickets(tixData.success ? Number(tixData.get_tickets || 0) : 0);
+    } catch (e) { console.warn("loadMembership failed:", e); setMemberInfo(null); setMyTickets(0); }
   }, [id, address]);
 
   useEffect(() => { loadPool(); loadAdmin(); }, [loadPool, loadAdmin]);
@@ -194,7 +214,7 @@ export default function PoolDetailPage() {
                   <StatBox label="DEPOSIT" value={`${pool.deposit} XLM`} bg="bg-[#e0f4ff]" />
                   <StatBox label="MEMBERS" value={`${pool.members}/${pool.max}`} bg="bg-[#ccfbf1]" Icon={Users} />
                   <StatBox label="CYCLE" value={`${displayedCycle}/${pool.totalCycles}`} bg="bg-[#fef9c3]" Icon={Clock} />
-                  <StatBox label="FUNDS" value={`${pool.deposit * pool.members} XLM`} bg="bg-[#e0f4ff]" Icon={DollarSign} />
+                  <StatBox label="FUNDS" value={`${pool.poolFunds} XLM`} bg="bg-[#e0f4ff]" Icon={DollarSign} />
                 </div>
                 {pool.state === "active" && <div className="mt-6"><div className="flex items-center justify-between mb-2"><span className="text-xs font-black uppercase tracking-[0.15em] text-[#333333]" style={LABEL_MONO}>Progress</span><span className="text-sm font-black" style={HEADING_FONT}>{progressPct}%</span></div><div className="h-4 w-full overflow-hidden border-[3px] border-[#0a0a0a] bg-[#e8e1d9]"><div className="h-full bg-[var(--color-sui)]" style={{ width: `${progressPct}%` }} /></div></div>}
               </div></div>
@@ -249,7 +269,7 @@ export default function PoolDetailPage() {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between"><span className="text-xs font-black uppercase tracking-[0.1em] text-[#333333]" style={LABEL_MONO}>Collateral</span><span className="font-black">{coll} XLM</span></div>
                     <div className="flex justify-between"><span className="text-xs font-black uppercase tracking-[0.1em] text-[#333333]" style={LABEL_MONO}>Paid?</span><span className={`font-black ${hasPaid ? "text-[var(--color-teal)]" : "text-[var(--color-crack)]"}`}>{hasPaid ? "YES" : "NO"}</span></div>
-                    <div className="flex justify-between"><span className="text-xs font-black uppercase tracking-[0.1em] text-[#333333]" style={LABEL_MONO}>Tickets</span><span className="font-black">6</span></div>
+                    <div className="flex justify-between"><span className="text-xs font-black uppercase tracking-[0.1em] text-[#333333]" style={LABEL_MONO}>Tickets</span><span className="font-black">{myTickets}</span></div>
                   </div>
                 </div> : <div className="text-center py-4"><Users className="size-8 mx-auto text-[#a8a49a] mb-2" /><p className="text-sm font-semibold text-[#333333]">Not a participant yet.</p></div>}
               </div></div>

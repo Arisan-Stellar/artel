@@ -107,7 +107,7 @@ export default function CreateArisanPage() {
                     round_duration: BigInt(2592000),
                     slash_grace_period: BigInt(1728000),
                     min_reputation: 0,
-                    admin_fee_bps: 50,
+                    admin_fee_bps: 0,
                     early_points: 3,
                     mid_points: 1,
                     late_penalty: -2,

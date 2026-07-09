@@ -7,19 +7,33 @@
 
 ---
 
+## ✅ STATUS TERAKHIR (08 Juli 2026) — SEMUA SELESAI
+
+| Item | Status |
+|------|--------|
+| Merge branding senior (favicon) ke faiz | ✅ FF merge |
+| Full audit + fix (18 bug: 2 CRITICAL, 2 HIGH, 7 MED, 7 LOW) | ✅ DONE |
+| Redeploy arisan + vault (admin key baru) | ✅ arisan `CAHJPUKI…` · vault `CCBQFVC3…` |
+| E2E lifecycle test (via CLI) | ✅ net-zero TERBUKTI on-chain |
+| Secret bocor | ✅ NEUTRALIZED (rotate + account-merge akun lama → HTTP 404) |
+| Docs update-faiz | ✅ HANDOVER, AI_ONBOARD, README, DEPLOY_HANDOVER, CHANGELOG |
+| Push faiz + PR #3 → main | ✅ open, mergeable |
+| Verifikasi | ✅ cargo 12/12 · tsc 0 · eslint 0/0 · wasm build clean |
+| **Sisa** | History scrub (force-push) — DEFERRED, cuma perlu kalau public/mainnet |
+
+---
+
 ## 📊 RINGKASAN
 
 | Metric | Value |
 |--------|-------|
-| Total commits (main → faiz) | 8 |
-| Files changed | 40 |
-| Lines added | 8,790 |
-| Lines removed | 1,383 |
-| Contract deployments | 4 (3 arisan, 1 vault) |
-| Bugs found & fixed | 13 |
-| Contract tests | 8/8 ✅ |
+| Total commits (main → faiz) | 8 awal + 6 pass audit |
+| Contract deployments | 6 (5 arisan, ... ) + redeploy arisan+vault (key baru) |
+| Bugs found & fixed | 13 + 18 (audit pass) |
+| Contract tests | 12/12 ✅ (arisan 9, factory 1, faucet 1, vault 1) |
 | Frontend lint | 0 errors, 0 warnings |
 | TypeScript | 0 errors |
+| E2E lifecycle | net-zero terbukti on-chain ✅ |
 
 ---
 
@@ -270,8 +284,61 @@ FRONTEND:
 
 ## 📋 YANG BELUM DILAKUKAN (Roadmap)
 
-1. **Redeploy vault contract pake kode terbaru** → vault saat ini masih `CCIUQJ...` lama sebelum unused const dihapus. Butuh build → deploy → init → set_token.
+1. ~~**Redeploy vault contract**~~ ✅ DONE — vault baru `CCBQFVC3…` (init + set_token). arisan juga redeploy `CAHJPUKI…`.
 2. **Wire vault register_participant** → arisan otomatis daftarin member ke vault pas contribute.
 3. **Wire vault funding** → distribute_collateral_yield via env.invoke_contract ke vault.receive_yield.
 4. **Real yield (DEX/Blend)** → `deposit_yield()` ada tapi belum ada automation.
 5. **Tombol "Distribute Yield" di FE** → sekarang cuma ada di contract.
+
+---
+
+## Commit 9: Merge `main` (branding senior) + Full Audit Bugfix + Redeploy
+
+**Contract redeploy (fresh admin key, key lama di-abandon karena secret bocor):**
+```
+arisan: CBHNJGTY… → CAHJPUKIDNVHJ2UQBMM65357I67LJXDQZKCC4DXAK6W4KQBXD2SQIQBT
+vault:  CDSHKMKF… → CCBQFVC34ZAXC3DTCTKCSIAEWQ4QS67LQQ7F2RL5DSGXJWV2XXY4YAEH (init + set_token OK)
+admin:  GAAA6ZHLYVEK57LIWBOPODU3VPGZXKO6GMQMR2JPEPDHX4R374NN2MTJ (secret cuma di .env.local)
+```
+
+**Integrasi:** fast-forward `origin/main` → `faiz` (branding: favicon 512x512, metadataBase, cleanup import).
+
+**Contract fixes:**
+| Sev | Fix | File |
+|-----|-----|------|
+| 🔴 CRITICAL | `distribute_collateral_yield` nganggep principal sebagai yield → insolvency. Seed `collateral_yield_balance = principal` di create_pool/join. + `test_collateral_yield_no_phantom` | arisan lib.rs |
+| 🟠 HIGH | Faucet `init` tanpa re-init guard → admin takeover. Tambah panic if initialized. | faucet lib.rs |
+| 🟡 MED | `select_winner` fallback index-0 kalau semua weight 0. Tambah `assert weight_sum>0`. | arisan lib.rs |
+| 🟡 MED | Vault `register_participant` unauth → ticket stuffing. Gate ke admin. | vault lib.rs |
+| 🟢 LOW | Gacha zero-in `yield_balance` → dana sisa nyangkut. Kurangi sebesar yang terbagi. | arisan lib.rs |
+| 🟢 LOW | Factory ditandai DEPRECATED; faucet SAC note; randomness security note. | factory/faucet/arisan |
+
+**Frontend fixes:**
+| Sev | Fix |
+|-----|-----|
+| 🟠 HIGH | `admin_fee_bps` create page 50 → 0 (selaras Fee 0%) |
+| 🟡 MED | Pool detail FUNDS pakai `pool_funds_balance` asli (bukan deposit×members) |
+| 🟡 MED | Participant badge Paid/Winner diisi dari `get_member_info` (dulu selalu false) |
+| 🟡 MED | Tickets "Your Status" pakai `get_tickets` (dulu hardcode 6) |
+| 🟡 MED | `useFreighterTx` + `api/rpc` pakai config dari `artel-sdk` (dulu hardcode testnet) |
+| 🟢 LOW | Favicon single-source (hapus block `icons` di layout.tsx) |
+| 🟢 LOW | Hapus dead `getRequiredCollateralAmount`; cycleDays dari `round_duration`; allowlist rpc/contract-state; NaN guard; surface empty-catch |
+
+**Security remediation (C1):** secret key + password dihapus dari working tree docs. Key di-**rotate** (contract pakai admin baru) + akun key lama di-**account-merge** (sekarang HTTP 404, worthless). Git history scrub (force-push) **DEFERRED** — cuma perlu kalau repo go public/mainnet.
+
+**Test:** cargo `12/12` ✅ · tsc `0` ✅ · eslint `0/0` ✅ · wasm build clean ✅
+
+> ⚠️ Redeploy me-reset semua pool testnet (fresh, 0 pool). Bikin pool baru via UI (`/dapp/create`).
+
+---
+
+## Commit 10-14: E2E test + docs handover + secret neutralization
+
+**E2E full lifecycle (CLI, testnet)** — create→3 join→start→3 ronde (contribute+select)→claim payout+final.
+Hasil: 3 winner unik, pool Completed, contract balance 0 (solvent), member net ~0 XLM → **Fair ROSCA net-zero TERBUKTI**.
+
+**Docs handover** — `DEPLOY_HANDOVER.md` (env vars Vercel + checklist tim main), README root (manual E2E flow + diagram visual), update semua address ke redeploy.
+
+**Secret neutralization (no force-push)** — account-merge akun lama `GBTM35LE…` → key baru `GAAA6ZHL…`. Akun lama sekarang HTTP 404. Secret bocor di history jadi ngontrol akun non-existent = 100% worthless. Force-push scrub tidak diperlukan untuk testnet.
+
+**PR:** [#3](https://github.com/Arisan-Stellar/artel/pull/3) `faiz → main` (open, mergeable).
