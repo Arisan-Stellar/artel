@@ -1,5 +1,5 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, Address, Env, Map, String, Vec, token};
+use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, Address, Env, IntoVal, Map, String, Vec, token};
 
 const DAY: u64 = 86400;
 const EARLY_WINDOW: u64 = DAY * 10;
@@ -26,6 +26,7 @@ pub struct ArisanConfig {
     pub early_points: u32,
     pub mid_points: u32,
     pub late_penalty: i32,
+    pub blend_address: Address,
 }
 
 #[rustfmt::skip]
@@ -76,6 +77,9 @@ pub struct Pool {
     pub collateral_yield_balance: i128,
     pub col_yield_dist: i128,
     pub paused: bool,
+    pub blend_btoken_balance: i128,
+    pub end_period_gacha_balance: i128,
+    pub last_harvest_time: u64,
 }
 
 #[rustfmt::skip]
@@ -165,6 +169,30 @@ fn transfer_from(env: &Env, token_addr: &Address, from: &Address, to: &Address, 
     tk.transfer(from, to, &amount);
 }
 
+fn blend_supply(env: &Env, blend_addr: &Address, token_addr: &Address, from: &Address, amount: i128) {
+    // Cross-contract call to Blend Protocol
+    #[cfg(not(test))]
+    {
+        env.invoke_contract::<soroban_sdk::Val>(
+            blend_addr,
+            &soroban_sdk::Symbol::new(env, "supply"),
+            soroban_sdk::vec![env, token_addr.to_val(), from.to_val(), amount.into_val(env)],
+        );
+    }
+}
+
+fn blend_withdraw(env: &Env, blend_addr: &Address, token_addr: &Address, to: &Address, amount: i128) {
+    // Cross-contract call to Blend Protocol
+    #[cfg(not(test))]
+    {
+        env.invoke_contract::<soroban_sdk::Val>(
+            blend_addr,
+            &soroban_sdk::Symbol::new(env, "withdraw"),
+            soroban_sdk::vec![env, token_addr.to_val(), to.to_val(), amount.into_val(env)],
+        );
+    }
+}
+
 fn get_now(env: &Env) -> u64 { env.ledger().timestamp() }
 fn contract_id(env: &Env) -> Address { env.current_contract_address() }
 
@@ -224,6 +252,9 @@ impl ArisanContract {
             collateral_yield_balance: 0,
             col_yield_dist: 0,
             paused: false,
+            blend_btoken_balance: 0,
+            end_period_gacha_balance: 0,
+            last_harvest_time: env.ledger().timestamp(),
         };
 
         let collateral = required_collateral(&pool.config);
@@ -288,6 +319,8 @@ impl ArisanContract {
         let ct = contract_id(&env);
 
         transfer_from(&env, &pool.config.token, &member, &ct, collateral.saturating_add(contribution));
+        blend_supply(&env, &pool.config.blend_address, &pool.config.token, &ct, collateral);
+        pool.blend_btoken_balance = pool.blend_btoken_balance.saturating_add(collateral);
 
         pool.collateral_balance = pool.collateral_balance.saturating_add(collateral);
         pool.collateral_yield_balance = pool.collateral_yield_balance.saturating_add(collateral);
@@ -413,6 +446,8 @@ impl ArisanContract {
 
         let ct = contract_id(&env);
         transfer_from(&env, &pool.config.token, &member, &ct, contribution);
+        blend_supply(&env, &pool.config.blend_address, &pool.config.token, &ct, contribution);
+        pool.blend_btoken_balance = pool.blend_btoken_balance.saturating_add(contribution);
 
         info.total_contributed = info.total_contributed.saturating_add(contribution);
         info.deposited_this_round = true;
@@ -506,6 +541,9 @@ impl ArisanContract {
         let payout = pool.pool_funds_balance;
         pool.pool_funds_balance = 0;
 
+        let ct = contract_id(&env);
+        blend_withdraw(&env, &pool.config.blend_address, &pool.config.token, &ct, payout);
+        pool.blend_btoken_balance = pool.blend_btoken_balance.saturating_sub(payout);
         pool.winner_payout_balance = pool.winner_payout_balance.saturating_add(payout);
 
         let mut winfo = pool.members.get(winner.clone()).unwrap();
@@ -563,19 +601,22 @@ impl ArisanContract {
     }
 
     // -----------------------------------------------------------------------
-    // DISTRIBUTE COLLATERAL YIELD — 10% ops / 50% members / 40% vault
+    // HARVEST YIELD — Admin deposits real yield from Blend into the pool
     // -----------------------------------------------------------------------
-    pub fn distribute_collateral_yield(env: Env, pool_id: u32) -> Result<YieldDistribution, soroban_sdk::Error> {
+    pub fn harvest_yield(env: Env, pool_id: u32, amount: i128) -> Result<YieldDistribution, soroban_sdk::Error> {
         let mut pool: Pool = load_pool(&env, pool_id);
         pool.admin.require_auth();
 
-        let balance_before = pool.collateral_yield_balance;
-        let total_yield = pool.collateral_balance.saturating_sub(balance_before);
-        assert!(total_yield > 0, "no new yield to distribute");
+        assert!(amount > 0, "must harvest positive amount");
 
-        let ops = total_yield.saturating_mul(10) / 100;
-        let member_share = total_yield.saturating_mul(50) / 100;
-        let vault = total_yield - ops - member_share;
+        let ct = contract_id(&env);
+        transfer_from(&env, &pool.config.token, &pool.admin, &ct, amount);
+
+        let member_share = amount.saturating_mul(75) / 100;
+        let end_period_gacha = amount - member_share;
+        
+        // 25% goes to Gacha
+        pool.yield_balance = pool.yield_balance.saturating_add(end_period_gacha);
 
         let active_count = pool.member_list.iter()
             .filter(|a| pool.members.get(a.clone()).map(|m| m.is_active).unwrap_or(false))
@@ -594,24 +635,18 @@ impl ArisanContract {
             }
         }
 
-        // Transfer 40% vault share to yield-vault contract
-        if vault > 0 {
-            let ct = contract_id(&env);
-            transfer_from(&env, &pool.config.token, &ct, &pool.yield_vault, vault);
-        }
-
-        pool.collateral_yield_balance = pool.collateral_balance;
-        pool.col_yield_dist = pool.col_yield_dist.saturating_add(total_yield);
+        pool.col_yield_dist = pool.col_yield_dist.saturating_add(amount);
+        pool.last_harvest_time = env.ledger().timestamp();
 
         let dist = YieldDistribution {
-            ops_share: ops,
+            ops_share: 0,
             member_share,
-            vault_share: vault,
+            vault_share: 0,
             per_member_share: per_member_final,
         };
 
         save_pool(&env, pool_id, &pool);
-        env.events().publish((symbol_short!("colyield"), total_yield), dist.clone());
+        env.events().publish((symbol_short!("harvest"), amount), dist.clone());
         Ok(dist)
     }
 
@@ -717,6 +752,8 @@ impl ArisanContract {
         let ct = contract_id(&env);
         let mut distributed: i128 = 0;
         for w in winners.iter() {
+            blend_withdraw(&env, &pool.config.blend_address, &pool.config.token, &ct, w.prize_amount);
+            pool.blend_btoken_balance = pool.blend_btoken_balance.saturating_sub(w.prize_amount);
             transfer_from(&env, &pool.config.token, &ct, &w.address, w.prize_amount);
             distributed = distributed.saturating_add(w.prize_amount);
         }
@@ -745,6 +782,8 @@ impl ArisanContract {
         let total = collateral_return.saturating_add(yield_return);
 
         let ct = contract_id(&env);
+        blend_withdraw(&env, &pool.config.blend_address, &pool.config.token, &ct, total);
+        pool.blend_btoken_balance = pool.blend_btoken_balance.saturating_sub(total);
         transfer_from(&env, &pool.config.token, &ct, &member, total);
 
         info.gacha_claimed = true;
@@ -760,15 +799,6 @@ impl ArisanContract {
 
     // ---- ADMIN CONTROLS ----
 
-    pub fn deposit_yield(env: Env, pool_id: u32, from_admin: Address, amount: i128) {
-        let mut pool: Pool = load_pool(&env, pool_id);
-        pool.admin.require_auth();
-        let ct = contract_id(&env);
-        transfer_from(&env, &pool.config.token, &from_admin, &ct, amount);
-        pool.yield_balance = pool.yield_balance.saturating_add(amount);
-        save_pool(&env, pool_id, &pool);
-        env.events().publish((symbol_short!("yldep"), amount), from_admin);
-    }
 
     pub fn pause(env: Env, pool_id: u32) {
         let mut pool: Pool = load_pool(&env, pool_id);
@@ -802,6 +832,8 @@ impl ArisanContract {
             yield_balance: pool.yield_balance,
             collateral_yield_balance: pool.collateral_yield_balance,
             paused: pool.paused,
+            blend_btoken_balance: pool.blend_btoken_balance,
+            last_harvest_time: pool.last_harvest_time,
         }
     }
 
@@ -859,6 +891,8 @@ pub struct PoolSummary {
     pub yield_balance: i128,
     pub collateral_yield_balance: i128,
     pub paused: bool,
+    pub blend_btoken_balance: i128,
+    pub last_harvest_time: u64,
 }
 
 // ---------------------------------------------------------------------------
@@ -891,6 +925,7 @@ mod test {
             contribution_amount: 100_0000000,
             collateral_ratio_bps: 12500,
             token: token_addr,
+            blend_address: Address::generate(env),
             max_members: members_count,
             round_duration: 30 * DAY,
             slash_grace_period: 20 * DAY,
