@@ -630,7 +630,7 @@
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.06em;
-  color: #888;
+  color: #bbb;
   transition: color 0.25s ease;
 }
 
@@ -639,7 +639,7 @@
 }
 
 .tabs .input:not(:checked) + .label:hover {
-  color: #555;
+  color: #fff;
 }
 
 .input:not(:checked) + .label:hover {
