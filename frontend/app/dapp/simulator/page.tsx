@@ -4,8 +4,10 @@ import { useState, useMemo } from "react";
 import { Calculator } from "lucide-react";
 import AnimatedBadge from "@/components/dapp/AnimatedBadge";
 import { HEADING_FONT, LABEL_MONO } from "@/components/dapp/ArtelHeader";
+import { useDict } from "@/lib/i18n/LocaleProvider";
 
 export default function SimulatorPage() {
+  const { dapp } = useDict();
   const [deposit, setDeposit] = useState(25);
   const [participants, setParticipants] = useState(10);
   const [cycleDays, setCycleDays] = useState(30);

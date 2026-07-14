@@ -4,9 +4,11 @@ import { useState } from "react";
 import { Gift, Trophy, Sparkles } from "lucide-react";
 import { HEADING_FONT, LABEL_MONO } from "@/components/dapp/ArtelHeader";
 import { useWallet } from "@/hooks/WalletContext";
+import { useDict } from "@/lib/i18n/LocaleProvider";
 
 export default function GachaPage() {
   const { address } = useWallet();
+  const { dapp } = useDict();
   const [tab, setTab] = useState<"annual" | "pool">("annual");
 
   if (!address) {

@@ -9,6 +9,7 @@ import { getRequiredCollateralFromConfig, getJoinCostFromConfig, DEFAULT_COLLATE
 import { useFreighterTx, scvAddress, scvU32 } from "@/hooks/useFreighterTx";
 import { CONTRACT_IDS } from "@/lib/artel-sdk";
 import { useWallet } from "@/hooks/WalletContext";
+import { useDict } from "@/lib/i18n/LocaleProvider";
 import type { xdr } from "@stellar/stellar-sdk";
 
 interface Participant { addr: string; collateral: number; paid: boolean; streak: number; tickets: number; won: boolean }
@@ -47,6 +48,7 @@ export default function PoolDetailPage() {
   const [alertMsg, setAlertMsg] = useState<string | null>(null);
   const { address } = useWallet();
   const { loading, error, txHash, invokeContract } = useFreighterTx();
+  const { dapp } = useDict();
   const coll = config ? getRequiredCollateralFromConfig(config) : 0;
   const joinCost = config ? getJoinCostFromConfig(config) : 0;
   const displayedCycle = pool.state === "completed" ? pool.totalCycles : pool.cycle;
@@ -185,7 +187,7 @@ export default function PoolDetailPage() {
   
   const canDrawGacha = pool.state === "completed" && isAdmin && Number(pool.yieldCumulative) > 0;
 
-  const statusLabel = pool.state === "active" ? "ACTIVE" : pool.state === "ready" ? "READY" : pool.state === "open" ? "OPEN" : "COMPLETED";
+  const statusLabel = pool.state === "active" ? dapp.status.active : pool.state === "ready" ? dapp.status.ready : pool.state === "open" ? dapp.status.open_ : dapp.status.completed;
   const statusColor = pool.state === "active" ? "bg-[#e0f4ff] text-[#0284c7]" : pool.state === "completed" ? "bg-[#e8e1d9] text-[#a8a49a]" : "bg-[#ccfbf1] text-[#0d9488]";
 
   return (
@@ -198,14 +200,14 @@ export default function PoolDetailPage() {
               <div className="size-8 bg-[#f59e0b] border-[2px] border-[#0a0a0a] flex items-center justify-center">
                 <AlertCircle className="size-5 text-[#0a0a0a]" />
               </div>
-              <h3 className="text-xl font-black" style={HEADING_FONT}>Notice</h3>
+              <h3 className="text-xl font-black" style={HEADING_FONT}>{dapp.shared.notice}</h3>
             </div>
             <p className="text-sm font-bold text-[#333] mb-6">{alertMsg}</p>
             <button
               onClick={() => setAlertMsg(null)}
               className="w-full border-[3px] border-[#0a0a0a] bg-[var(--color-sui)] px-4 py-3 text-sm font-black uppercase text-[#0a0a0a] shadow-[4px_4px_0_#0a0a0a] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all"
             >
-              CLOSE
+              CLOSE → {dapp.shared.close}
             </button>
           </div>
         </div>
@@ -214,7 +216,7 @@ export default function PoolDetailPage() {
       <section className="relative isolate overflow-hidden px-5 pb-6 pt-2 md:px-10 lg:px-12">
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_18%_20%,rgba(56,189,248,0.28),transparent_28%),radial-gradient(circle_at_82%_12%,rgba(245,158,11,0.18),transparent_26%)]" />
         <div className="mx-auto max-w-6xl">
-          <Link href="/dapp/pools" className="inline-flex items-center gap-2 border-[3px] border-[#0a0a0a] bg-[var(--color-sui)] px-4 py-3 text-xs font-black uppercase tracking-[0.16em] text-[#0a0a0a] shadow-[5px_5px_0_#0a0a0a] transition hover:-translate-y-0.5"><ArrowLeft className="size-4" /> Back to Pools</Link>
+          <Link href="/dapp/pools" className="inline-flex items-center gap-2 border-[3px] border-[#0a0a0a] bg-[var(--color-sui)] px-4 py-3 text-xs font-black uppercase tracking-[0.16em] text-[#0a0a0a] shadow-[5px_5px_0_#0a0a0a] transition hover:-translate-y-0.5"><ArrowLeft className="size-4" /> {dapp.poolDetail.backToPools}</Link>
           <div className="mt-6 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
             <div>
               <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -224,7 +226,7 @@ export default function PoolDetailPage() {
               <div className="inline-flex max-w-full items-center gap-1.5 overflow-hidden border-[3px] border-[#0a0a0a] bg-[#fdfdfa] px-4 py-2 text-xs font-black text-[#333333] shadow-[5px_5px_0_#0a0a0a]"><span className="max-w-[200px] truncate md:max-w-none" style={LABEL_MONO}>{pool.id}</span><Sparkles className="size-3.5 text-[#0a0a0a]" /></div>
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              <button className="inline-flex items-center gap-1.5 border-[2px] border-[#0a0a0a] bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] shadow-[2px_2px_0_#0a0a0a] hover:bg-[#0a0a0a] hover:text-white transition" style={LABEL_MONO}><Share2 className="size-3" /> Share</button>
+              <button className="inline-flex items-center gap-1.5 border-[2px] border-[#0a0a0a] bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] shadow-[2px_2px_0_#0a0a0a] hover:bg-[#0a0a0a] hover:text-white transition" style={LABEL_MONO}><Share2 className="size-3" /> {dapp.shared.share}</button>
             </div>
           </div>
         </div>
@@ -239,66 +241,63 @@ export default function PoolDetailPage() {
             {/* LEFT COLUMN */}
             <div className="lg:col-span-2 space-y-8">
               <div className={CARD_CLASS}><GrainOverlay /><div className="relative z-20 p-6">
-                <div className="flex items-center justify-between mb-5"><BarcodeStrip className="w-12 h-4" /><span className="text-xs font-black uppercase tracking-[0.2em] text-[#333333]" style={LABEL_MONO}>stats</span></div>
-                <h2 className="mb-5 text-2xl font-black tracking-[-0.04em]" style={HEADING_FONT}>Pool Stats</h2>
+                <div className="flex items-center justify-between mb-5"><BarcodeStrip className="w-12 h-4" /><span className="text-xs font-black uppercase tracking-[0.2em] text-[#333333]" style={LABEL_MONO}>{dapp.poolDetail.stats}</span></div>
+                <h2 className="mb-5 text-2xl font-black tracking-[-0.04em]" style={HEADING_FONT}>{dapp.poolDetail.poolStats}</h2>
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                  <StatBox label="DEPOSIT" value={`${pool.deposit} XLM`} bg="bg-[#e0f4ff]" />
-                  <StatBox label="MEMBERS" value={`${pool.members}/${pool.max}`} bg="bg-[#ccfbf1]" Icon={Users} />
-                  <StatBox label="CYCLE" value={`${displayedCycle}/${pool.totalCycles}`} bg="bg-[#fef9c3]" Icon={Clock} />
-                  <StatBox label="FUNDS" value={`${pool.poolFunds} XLM`} bg="bg-[#e0f4ff]" Icon={DollarSign} />
+                  <StatBox label={dapp.poolDetail.deposit} value={`${pool.deposit} XLM`} bg="bg-[#e0f4ff]" />
+                  <StatBox label={dapp.poolDetail.members} value={`${pool.members}/${pool.max}`} bg="bg-[#ccfbf1]" Icon={Users} />
+                  <StatBox label={dapp.poolDetail.cycle_} value={`${displayedCycle}/${pool.totalCycles}`} bg="bg-[#fef9c3]" Icon={Clock} />
+                  <StatBox label={dapp.poolDetail.funds} value={`${pool.poolFunds} XLM`} bg="bg-[#e0f4ff]" Icon={DollarSign} />
                 </div>
-                {pool.state === "active" && <div className="mt-6"><div className="flex items-center justify-between mb-2"><span className="text-xs font-black uppercase tracking-[0.15em] text-[#333333]" style={LABEL_MONO}>Progress</span><span className="text-sm font-black" style={HEADING_FONT}>{progressPct}%</span></div><div className="h-4 w-full overflow-hidden border-[3px] border-[#0a0a0a] bg-[#e8e1d9]"><div className="h-full bg-[var(--color-sui)]" style={{ width: `${progressPct}%` }} /></div></div>}
+                {pool.state === "active" && <div className="mt-6"><div className="flex items-center justify-between mb-2"><span className="text-xs font-black uppercase tracking-[0.15em] text-[#333333]" style={LABEL_MONO}>{dapp.poolDetail.progress}</span><span className="text-sm font-black" style={HEADING_FONT}>{progressPct}%</span></div><div className="h-4 w-full overflow-hidden border-[3px] border-[#0a0a0a] bg-[#e8e1d9]"><div className="h-full bg-[var(--color-sui)]" style={{ width: `${progressPct}%` }} /></div></div>}
               </div></div>
 
               <div className="flex flex-wrap gap-3">
-                {canJoin && <button onClick={handleJoin} disabled={loading} className={BTN_ORANGE + " px-8 disabled:opacity-50"}>{loading ? "..." : <><span className="sm:hidden">Join · {joinCost} XLM</span><span className="hidden sm:inline">Join · {joinCost} XLM ({coll} collateral + {pool.deposit} deposit)</span></>}</button>}
-                {canDeposit && <button onClick={handleDeposit} disabled={loading} className={BTN_PRIMARY + " px-8 disabled:opacity-50"}>{loading ? "..." : `Deposit ${pool.deposit} XLM`}</button>}
-                {canStart && <button onClick={handleStart} disabled={loading} className={BTN_SUCCESS + " px-6 disabled:opacity-50"}>{loading ? "..." : "Start Pool"}</button>}
-                {canSelect && <button onClick={handleSelect} disabled={loading} className={BTN_ORANGE + " px-6 disabled:opacity-50"}>{loading ? "..." : "Select Winner"}</button>}
-                {canClaimPayout && <button onClick={handleClaimPayout} disabled={loading} className={BTN_SUCCESS + " px-6 disabled:opacity-50"}>{loading ? "..." : `Claim Payout ${(Number(memberInfo?.pending_winner_payout || 0) / 10_000_000)} XLM`}</button>}
+{canJoin && <button onClick={handleJoin} disabled={loading} className={BTN_ORANGE + " px-8 disabled:opacity-50"}>{loading ? "..." : <><span className="sm:hidden">{dapp.poolDetail.join} · {joinCost} XLM</span><span className="hidden sm:inline">{dapp.poolDetail.join} · {joinCost} XLM ({coll} {dapp.poolDetail.joinDetail} + {pool.deposit} deposit)</span></>}</button>}
+{canDeposit && <button onClick={handleDeposit} disabled={loading} className={BTN_PRIMARY + " px-8 disabled:opacity-50"}>{loading ? "..." : `${dapp.poolDetail.depositBtn} ${pool.deposit} XLM`}</button>}
+{canStart && <button onClick={handleStart} disabled={loading} className={BTN_SUCCESS + " px-6 disabled:opacity-50"}>{loading ? "..." : dapp.poolDetail.start}</button>}
+{canSelect && <button onClick={handleSelect} disabled={loading} className={BTN_ORANGE + " px-6 disabled:opacity-50"}>{loading ? "..." : dapp.poolDetail.selectWinner}</button>}
+{canClaimPayout && <button onClick={handleClaimPayout} disabled={loading} className={BTN_SUCCESS + " px-6 disabled:opacity-50"}>{loading ? "..." : `${dapp.poolDetail.claimPayout} ${(Number(memberInfo?.pending_winner_payout || 0) / 10_000_000)} XLM`}</button>}
               </div>
               
               <div className="border-[3px] border-[#0a0a0a] bg-[#fef9c3] p-4 text-[#0a0a0a] shadow-[4px_4px_0_#0a0a0a]">
-                <p className="text-xs font-black uppercase mb-1" style={LABEL_MONO}>How Does Collateral Work?</p>
-                <p className="text-xs font-semibold leading-relaxed">
-                  When you click <b>Join</b>, your collateral is automatically deposited into <b>Blend Protocol</b> via Smart Contract.
-                  This collateral is locked to generate <i>Yield</i> during the pool cycle. You can withdraw your collateral (Claim Final) at the end of the cycle if you never missed a payment.
-                </p>
+                 <p className="text-xs font-black uppercase mb-1" style={LABEL_MONO}>{dapp.poolDetail.collateralInfo}</p>
+                 <p className="text-xs font-semibold leading-relaxed">{dapp.poolDetail.collateralInfoBody}</p>
               </div>
 
               <div className={CARD_CLASS}><GrainOverlay /><div className="relative z-20 p-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3">
                   <div className="flex items-center gap-3">
                     <BarcodeStrip className="w-12 h-4" />
-                    <span className="text-xs font-black uppercase tracking-[0.2em] text-[#333333]" style={LABEL_MONO}>yield</span>
+                    <span className="text-xs font-black uppercase tracking-[0.2em] text-[#333333]" style={LABEL_MONO}>{dapp.poolDetail.yield_}</span>
                   </div>
                   {(canClaimFinal || canDrawGacha) && (
                     <div className="inline-flex border-[3px] border-[#0a0a0a] shadow-[4px_4px_0_#0a0a0a] overflow-hidden">
                       {canClaimFinal && (
                         <button onClick={handleClaimFinal} disabled={loading} className={`bg-[#f59e0b] px-4 py-2 text-xs font-black uppercase text-[#0a0a0a] transition hover:bg-[#d97706] disabled:opacity-50 ${canDrawGacha ? 'border-r-[3px] border-[#0a0a0a]' : ''}`}>
-                          {loading ? "..." : `Claim Final (${coll} XLM + ${(Number(memberInfo?.yield_earned || 0) / 10_000_000).toFixed(6)})`}
+                          {loading ? "..." : `${dapp.poolDetail.claimFinal} (${coll} XLM + ${(Number(memberInfo?.yield_earned || 0) / 10_000_000).toFixed(6)})`}
                         </button>
                       )}
                       {canDrawGacha && (
                         <button onClick={handleDrawGacha} disabled={loading} className="bg-[#ec4899] px-4 py-2 text-xs font-black uppercase text-white transition hover:bg-[#be185d] disabled:opacity-50">
-                          {loading ? "..." : "Draw Gacha"}
+                          {loading ? "..." : dapp.poolDetail.drawGacha}
                         </button>
                       )}
                     </div>
                   )}
                 </div>
-                <h2 className="mb-5 text-2xl font-black tracking-[-0.04em]" style={HEADING_FONT}>Yield</h2>
+                <h2 className="mb-5 text-2xl font-black tracking-[-0.04em]" style={HEADING_FONT}>{dapp.poolDetail.yield_}</h2>
                 <div className="flex flex-col gap-3">
-                  <StatBox label="Blend Staked" value={`${pool.blendStaked.toFixed(6)} XLM`} bg="bg-[#fef08a]" sub="Live Verified" Icon={Zap} />
-                  <StatBox label="Pool Gacha" value={`${pool.yieldCumulative.toFixed(6)} XLM`} bg="bg-[#ede9fe]" sub="Cumulative" Icon={Gift} />
-                  <StatBox label="Collateral" value={`${pool.yieldCollateral.toFixed(6)} XLM`} bg="bg-[#e0f4ff]" sub="Monthly split" />
-                  <StatBox label="Collat/Member" value={`${coll.toFixed(6)} XLM`} bg="bg-[#ccfbf1]" sub={`${config ? Number(config.collateral_ratio_bps) / 100 : DEFAULT_COLLATERAL_MULTIPLIER}%`} />
+                  <StatBox label={dapp.poolDetail.blendStaked} value={`${pool.blendStaked.toFixed(6)} XLM`} bg="bg-[#fef08a]" sub={dapp.poolDetail.blendStakedSub} Icon={Zap} />
+                  <StatBox label={dapp.poolDetail.poolGacha} value={`${pool.yieldCumulative.toFixed(6)} XLM`} bg="bg-[#ede9fe]" sub={dapp.poolDetail.poolGachaSub} Icon={Gift} />
+                  <StatBox label={dapp.poolDetail.collateral_} value={`${pool.yieldCollateral.toFixed(6)} XLM`} bg="bg-[#e0f4ff]" sub={dapp.poolDetail.collateralSub} />
+                  <StatBox label={dapp.poolDetail.collatPerMember} value={`${coll.toFixed(6)} XLM`} bg="bg-[#ccfbf1]" sub={`${config ? Number(config.collateral_ratio_bps) / 100 : DEFAULT_COLLATERAL_MULTIPLIER}%`} />
                 </div>
               </div></div>
 
               <div className={CARD_CLASS}><GrainOverlay /><div className="relative z-20 p-6">
-                <div className="flex items-center justify-between mb-5"><BarcodeStrip className="w-12 h-4" /><span className="text-xs font-black uppercase tracking-[0.2em] text-[#333333]" style={LABEL_MONO}>members</span></div>
-                <h2 className="mb-5 text-2xl font-black tracking-[-0.04em]" style={HEADING_FONT}>Participants ({pool.members})</h2>
+                <div className="flex items-center justify-between mb-5"><BarcodeStrip className="w-12 h-4" /><span className="text-xs font-black uppercase tracking-[0.2em] text-[#333333]" style={LABEL_MONO}>{dapp.poolDetail.participants.toLowerCase()}</span></div>
+                <h2 className="mb-5 text-2xl font-black tracking-[-0.04em]" style={HEADING_FONT}>{dapp.poolDetail.participants} ({pool.members})</h2>
                 {isAdmin && (
                   <button 
                     onClick={async () => {
@@ -315,42 +314,42 @@ export default function PoolDetailPage() {
                       }
                     }}
                     className="mb-6 w-full border-[3px] border-[#0a0a0a] bg-[#f59e0b] p-2 text-sm font-black uppercase text-[#0a0a0a] shadow-[3px_3px_0_#0a0a0a] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all"
-                  >Harvest Yield</button>
+                  >{dapp.poolDetail.harvestBtn}</button>
                 )}
                 <div className="space-y-2">
                   {pool.participants.map((p: Participant, i: number) => (
                     <div key={i} className={`flex items-center justify-between border-[3px] p-3 ${p.paid ? "border-[#0a0a0a] bg-[#ccfbf1]" : "border-[#0a0a0a] bg-[#f5f7fa]"}`}>
-                      <div className="flex items-center gap-3 min-w-0"><div className="flex h-10 w-10 shrink-0 items-center justify-center border-[3px] border-[#0a0a0a] bg-[var(--color-sui)] text-[#0a0a0a] font-black text-sm" style={HEADING_FONT}>{i + 1}</div><div className="min-w-0"><p className="text-sm font-bold truncate max-w-[120px] xs:max-w-[160px] sm:max-w-[200px]" style={LABEL_MONO}>{p.addr}</p><div className="flex items-center gap-2 mt-0.5">{p.paid && <span className="text-xs font-black text-[var(--color-teal)]" style={LABEL_MONO}><Check className="inline size-3" /> Paid</span>}{p.won && <span className="text-xs font-black text-[#f8672d]" style={LABEL_MONO}><Trophy className="inline size-3" /> Winner</span>}</div></div></div>
-                      <div className="text-right text-xs"><span className="font-bold">{p.tickets}</span> <span className="text-[#333333]">tickets</span></div>
+                      <div className="flex items-center gap-3 min-w-0"><div className="flex h-10 w-10 shrink-0 items-center justify-center border-[3px] border-[#0a0a0a] bg-[var(--color-sui)] text-[#0a0a0a] font-black text-sm" style={HEADING_FONT}>{i + 1}</div><div className="min-w-0"><p className="text-sm font-bold truncate max-w-[120px] xs:max-w-[160px] sm:max-w-[200px]" style={LABEL_MONO}>{p.addr}</p><div className="flex items-center gap-2 mt-0.5">{p.paid && <span className="text-xs font-black text-[var(--color-teal)]" style={LABEL_MONO}><Check className="inline size-3" /> {dapp.poolDetail.paid}</span>}{p.won && <span className="text-xs font-black text-[#f8672d]" style={LABEL_MONO}><Trophy className="inline size-3" /> {dapp.poolDetail.winner}</span>}</div></div></div>
+                      <div className="text-right text-xs"><span className="font-bold">{p.tickets}</span> <span className="text-[#333333]">{dapp.poolDetail.tickets}</span></div>
                     </div>
                   ))}
                 </div>
               </div></div>
 
               {pool.cycleWinners?.length > 0 && <div className={CARD_CLASS}><GrainOverlay /><div className="relative z-20 p-6">
-                <div className="flex items-center justify-between mb-5"><BarcodeStrip className="w-12 h-4" /><span className="text-xs font-black uppercase tracking-[0.2em] text-[#333333]" style={LABEL_MONO}>winners</span></div>
-                <h2 className="mb-5 text-2xl font-black tracking-[-0.04em]" style={HEADING_FONT}>Cycle Winners</h2>
-                <div className="space-y-2">{pool.cycleWinners.map((w: CycleWinner) => <div key={w.cycle} className="flex items-center justify-between border-[3px] border-[#0a0a0a] bg-[#fef9c3] p-3"><div className="flex items-center gap-3 min-w-0"><div className="flex h-10 w-10 shrink-0 items-center justify-center border-[3px] border-[#0a0a0a] bg-[#f8672d] text-[#0a0a0a] font-black text-sm" style={HEADING_FONT}>{w.cycle}</div><div className="min-w-0"><p className="text-sm font-bold" style={LABEL_MONO}>Cycle {w.cycle}</p><p className="text-xs font-semibold text-[#333333] truncate max-w-[140px] sm:max-w-[200px]">{w.addr}</p></div></div><Trophy className="size-4 text-[#f8672d]" /></div>)}</div>
+                <div className="flex items-center justify-between mb-5"><BarcodeStrip className="w-12 h-4" /><span className="text-xs font-black uppercase tracking-[0.2em] text-[#333333]" style={LABEL_MONO}>{dapp.poolDetail.cycleWinners.toLowerCase()}</span></div>
+                <h2 className="mb-5 text-2xl font-black tracking-[-0.04em]" style={HEADING_FONT}>{dapp.poolDetail.cycleWinners}</h2>
+                <div className="space-y-2">{pool.cycleWinners.map((w: CycleWinner) => <div key={w.cycle} className="flex items-center justify-between border-[3px] border-[#0a0a0a] bg-[#fef9c3] p-3"><div className="flex items-center gap-3 min-w-0"><div className="flex h-10 w-10 shrink-0 items-center justify-center border-[3px] border-[#0a0a0a] bg-[#f8672d] text-[#0a0a0a] font-black text-sm" style={HEADING_FONT}>{w.cycle}</div><div className="min-w-0"><p className="text-sm font-bold" style={LABEL_MONO}>{dapp.poolDetail.cycleLabel} {w.cycle}</p><p className="text-xs font-semibold text-[#333333] truncate max-w-[140px] sm:max-w-[200px]">{w.addr}</p></div></div><Trophy className="size-4 text-[#f8672d]" /></div>)}</div>
               </div></div>}
             </div>
 
             {/* RIGHT COLUMN */}
             <div className="lg:col-span-1 space-y-8">
               <div className={CARD_CLASS}><GrainOverlay /><div className="relative z-20 p-6">
-                <div className="flex items-center justify-between mb-5"><BarcodeStrip className="w-12 h-4" /><span className="text-xs font-black uppercase tracking-[0.2em] text-[#333333]" style={LABEL_MONO}>status</span></div>
-                <h2 className="mb-5 text-2xl font-black tracking-[-0.04em]" style={HEADING_FONT}>Your Status</h2>
+                <div className="flex items-center justify-between mb-5"><BarcodeStrip className="w-12 h-4" /><span className="text-xs font-black uppercase tracking-[0.2em] text-[#333333]" style={LABEL_MONO}>{dapp.poolDetail.yourStatus.toLowerCase()}</span></div>
+                <h2 className="mb-5 text-2xl font-black tracking-[-0.04em]" style={HEADING_FONT}>{dapp.poolDetail.yourStatus}</h2>
                 {isParticipant ? <div className="space-y-4">
-                  <div className="border-[3px] border-[#0a0a0a] bg-[#ccfbf1] p-4"><div className="flex items-center gap-2 mb-2"><Check className="w-5 h-5 text-[var(--color-teal)]" /><span className="font-black">Active Participant</span></div><p className="text-sm font-semibold text-[#333333]">You are in this pool</p></div>
+                  <div className="border-[3px] border-[#0a0a0a] bg-[#ccfbf1] p-4"><div className="flex items-center gap-2 mb-2"><Check className="w-5 h-5 text-[var(--color-teal)]" /><span className="font-black">{dapp.poolDetail.activeParticipant}</span></div><p className="text-sm font-semibold text-[#333333]">{dapp.poolDetail.activeParticipantDesc}</p></div>
                   <div className="space-y-2 text-sm">
-                    <div className="flex justify-between"><span className="text-xs font-black uppercase tracking-[0.1em] text-[#333333]" style={LABEL_MONO}>Collateral</span><span className="font-black">{coll} XLM</span></div>
-                    <div className="flex justify-between"><span className="text-xs font-black uppercase tracking-[0.1em] text-[#333333]" style={LABEL_MONO}>Paid?</span><span className={`font-black ${hasPaid ? "text-[var(--color-teal)]" : "text-[var(--color-crack)]"}`}>{hasPaid ? "YES" : "NO"}</span></div>
-                    <div className="flex justify-between"><span className="text-xs font-black uppercase tracking-[0.1em] text-[#333333]" style={LABEL_MONO}>Tickets</span><span className="font-black">6</span></div>
+                    <div className="flex justify-between"><span className="text-xs font-black uppercase tracking-[0.1em] text-[#333333]" style={LABEL_MONO}>{dapp.poolDetail.collateral_}</span><span className="font-black">{coll} XLM</span></div>
+                    <div className="flex justify-between"><span className="text-xs font-black uppercase tracking-[0.1em] text-[#333333]" style={LABEL_MONO}>{dapp.poolDetail.paid}?</span><span className={`font-black ${hasPaid ? "text-[var(--color-teal)]" : "text-[var(--color-crack)]"}`}>{hasPaid ? "YES" : "NO"}</span></div>
+                    <div className="flex justify-between"><span className="text-xs font-black uppercase tracking-[0.1em] text-[#333333]" style={LABEL_MONO}>{dapp.poolDetail.tickets}</span><span className="font-black">6</span></div>
                   </div>
-                </div> : <div className="text-center py-4"><Users className="size-8 mx-auto text-[#a8a49a] mb-2" /><p className="text-sm font-semibold text-[#333333]">Not a participant yet.</p></div>}
+                </div> : <div className="text-center py-4"><Users className="size-8 mx-auto text-[#a8a49a] mb-2" /><p className="text-sm font-semibold text-[#333333]">{dapp.poolDetail.notParticipantDesc}</p></div>}
               </div></div>
 
               <div className={CARD_CLASS}><GrainOverlay /><div className="relative z-20 p-6">
-                <div className="flex items-center justify-between mb-5"><BarcodeStrip className="w-12 h-4" /><span className="text-xs font-black uppercase tracking-[0.2em] text-[#333333]" style={LABEL_MONO}>actions</span></div>
+                <div className="flex items-center justify-between mb-5"><BarcodeStrip className="w-12 h-4" /><span className="text-xs font-black uppercase tracking-[0.2em] text-[#333333]" style={LABEL_MONO}>{dapp.poolDetail.quickActions.toLowerCase()}</span></div>
                 <h2 className="mb-5 text-2xl font-black tracking-[-0.04em]" style={HEADING_FONT}>Quick Actions</h2>
                 <div className="space-y-2 text-sm font-semibold">
                   <div className="flex justify-between"><span>Deposit</span><span className="font-black">{pool.deposit} XLM</span></div>

@@ -7,6 +7,7 @@ import { HEADING_FONT, LABEL_MONO } from "@/components/dapp/ArtelHeader";
 import { useWallet } from "@/hooks/WalletContext";
 import { artelClient, CONTRACT_IDS } from "@/lib/artel-sdk";
 import { scValToNative } from "@stellar/stellar-sdk";
+import { useDict } from "@/lib/i18n/LocaleProvider";
 
 interface MyPool { id: string; name: string; role: string; cycles: string; points: number; tickets: number; status: string }
 

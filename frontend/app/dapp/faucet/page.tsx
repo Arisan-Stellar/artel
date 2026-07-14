@@ -6,11 +6,13 @@ import { HEADING_FONT } from "@/components/dapp/ArtelHeader";
 import { useWallet } from "@/hooks/WalletContext";
 import WalletCard from "@/components/dapp/WalletCard";
 import AnimatedBadge from "@/components/dapp/AnimatedBadge";
+import { useDict } from "@/lib/i18n/LocaleProvider";
 
 const COOLDOWN_HOURS = 24;
 
 export default function FaucetPage() {
   const { address } = useWallet();
+  const { dapp } = useDict();
   const [claimed, setClaimed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(false);

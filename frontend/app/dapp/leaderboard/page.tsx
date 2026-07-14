@@ -5,6 +5,7 @@ import { Trophy, Medal, Star, Circle, Calendar, Sparkles, Gift, Info, ChevronDow
 import AnimatedBadge from "@/components/dapp/AnimatedBadge";
 import { HEADING_FONT, LABEL_MONO } from "@/components/dapp/ArtelHeader";
 import { useWallet } from "@/hooks/WalletContext";
+import { useDict } from "@/lib/i18n/LocaleProvider";
 
 type Tier = "diamond" | "platinum" | "gold" | "silver" | "bronze";
 

@@ -8,6 +8,7 @@ import { artelClient, CONTRACT_IDS } from "@/lib/artel-sdk";
 import { scValToNative } from "@stellar/stellar-sdk";
 import WalletCard from "@/components/dapp/WalletCard";
 import AnimatedBadge from "@/components/dapp/AnimatedBadge";
+import { useDict } from "@/lib/i18n/LocaleProvider";
 
 function tierFromPoints(points: number): string {
   if (points >= 400) return "Diamond";

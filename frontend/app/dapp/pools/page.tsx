@@ -8,6 +8,7 @@ import { getRequiredCollateralFromConfig } from "@/lib/poolMath";
 import AnimatedBadge from "@/components/dapp/AnimatedBadge";
 import { useWallet } from "@/hooks/WalletContext";
 import WalletCard from "@/components/dapp/WalletCard";
+import { useDict } from "@/lib/i18n/LocaleProvider";
 
 interface PoolEntry { id: string; name: string; deposit: number; max: number; members: number; status: "open" | "active" | "completed"; cycle: number; totalCycles: number; cycleDays: number; apy: number; totalFunds: number; yieldAccrued: number; collateralBps: number; }
 interface RawPoolState { state?: string | string[]; member_count?: number | string; current_round?: number | string; total_rounds?: number | string; pool_funds_balance?: number | string; yield_balance?: number | string; is_full?: boolean; }
@@ -50,6 +51,7 @@ function parsePoolState(id: string, state: RawPoolState, config: RawPoolConfig):
 
 export default function PoolsPage() {
   const { address } = useWallet();
+  const d = useDict();
   const [pools, setPools] = useState<PoolEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | PoolStatus>("all");
@@ -111,12 +113,12 @@ export default function PoolsPage() {
         <div className="mx-auto max-w-6xl">
           {/* Stats */}
           <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-4">
-            {[
+            {([
               { label: "TOTAL POOLS", value: loading ? "..." : pools.length, color: "#f59e0b", sub: "live" },
-              { label: "OPEN", value: loading ? "..." : pools.filter((p) => p.status === "open").length, color: "#fda4af", sub: "ready" },
-              { label: "RUNNING", value: loading ? "..." : pools.filter((p) => p.status === "active").length, color: "#c084fc", sub: "active" },
-              { label: "COMPLETED", value: loading ? "..." : pools.filter((p) => p.status === "completed").length, color: "#2dd4bf", sub: "done" },
-            ].map(({ label, value, color }) => (
+              { label: d.dapp.status.open_, value: loading ? "..." : pools.filter((p) => p.status === "open").length, color: "#fda4af", sub: "ready" },
+              { label: d.dapp.status.active, value: loading ? "..." : pools.filter((p) => p.status === "active").length, color: "#c084fc", sub: "active" },
+              { label: d.dapp.status.completed, value: loading ? "..." : pools.filter((p) => p.status === "completed").length, color: "#2dd4bf", sub: "done" },
+            ] as const).map(({ label, value, color }) => (
               <div key={label} className="brutal-subscribe__container group">
                 <div className="brutal-subscribe__header" style={{ backgroundColor: color }}>
                   <span className="brutal-subscribe__title" style={{ fontFamily: "'Bebas Neue', system-ui, sans-serif", fontSize: "28px", textShadow: "2px 2px 0 rgba(0,0,0,0.3)" }}>{value}</span>
@@ -135,7 +137,7 @@ export default function PoolsPage() {
               <span className="game-btn-inner">
                 <span className="game-btn-slide" />
                 <span className="game-btn-text flex items-center gap-1.5">
-                  <Droplets className="size-3.5" /> Claim 10,000 XLM
+                  <Droplets className="size-3.5" /> {d.dapp.faucet.claimBtn}
                 </span>
               </span>
             </a>
@@ -143,26 +145,29 @@ export default function PoolsPage() {
               <Link href="/dapp/create" className="game-btn">
                 <span className="game-btn-inner">
                   <span className="game-btn-slide" />
-                  <span className="game-btn-text">+ Create Pool</span>
+                  <span className="game-btn-text">+ {d.dapp.nav.create}</span>
                 </span>
               </Link>
             ) : (
               <div className="border-[3px] border-[#0a0a0a] bg-[var(--color-artel)] bg-opacity-10 px-4 py-2 text-xs font-bold text-[#333333]">
-                Connect wallet to create a pool
+                {d.dapp.pools.noPools}
               </div>
             )}
           </div>
 
           {/* Filters */}
           <div className="mb-8 tabs" role="radiogroup">
-            <input type="radio" id="f-all" name="filter" className="input sr-only" checked={filter === "all"} onChange={() => setFilter("all")} />
-            <label htmlFor="f-all" className="label">ALL</label>
-            <input type="radio" id="f-open" name="filter" className="input sr-only" checked={filter === "open"} onChange={() => setFilter("open")} />
-            <label htmlFor="f-open" className="label">OPEN</label>
-            <input type="radio" id="f-active" name="filter" className="input sr-only" checked={filter === "active"} onChange={() => setFilter("active")} />
-            <label htmlFor="f-active" className="label">ACTIVE</label>
-            <input type="radio" id="f-completed" name="filter" className="input sr-only" checked={filter === "completed"} onChange={() => setFilter("completed")} />
-            <label htmlFor="f-completed" className="label">COMPLETED</label>
+            {([
+              ["all", d.dapp.pools.all],
+              ["open", d.dapp.pools.filterOpen],
+              ["active", d.dapp.pools.filterActive],
+              ["completed", d.dapp.pools.filterCompleted],
+            ] as const).map(([value, label]) => (
+              <span key={value}>
+                <input type="radio" id={`f-${value}`} name="filter" className="input sr-only" checked={filter === value} onChange={() => setFilter(value as typeof filter)} />
+                <label htmlFor={`f-${value}`} className="label">{label}</label>
+              </span>
+            ))}
           </div>
 
           {/* Not connected prompt */}
@@ -207,9 +212,9 @@ export default function PoolsPage() {
                     </div>
                     <div className="grid grid-cols-3 border-t-[3px] border-[#0a0a0a]">
                       {[
-                        { value: pool.deposit, label: "Deposit", sub: "XLM" },
-                        { value: `${pool.members}/${pool.max}`, label: "Members", sub: `${Math.round(memberRatio * 100)}%` },
-                        { value: `${pool.cycleDays}d`, label: "Cycle", sub: `${pool.totalFunds} XLM` },
+                        { value: pool.deposit, label: d.dapp.pools.deposit, sub: "XLM" },
+                        { value: `${pool.members}/${pool.max}`, label: d.dapp.pools.members, sub: `${Math.round(memberRatio * 100)}%` },
+                        { value: `${pool.cycleDays}d`, label: d.dapp.pools.cycle, sub: `${pool.totalFunds} XLM` },
                       ].map((stat, si) => (
                         <div key={stat.label} className="p-2.5 text-center" style={{ borderRight: si < 2 ? "3px solid #0a0a0a" : "none" }}>
                           <span className="block text-xl leading-none text-[#0a0a0a]" style={HEADING_FONT}>{stat.value}</span>
@@ -226,7 +231,7 @@ export default function PoolsPage() {
                       ) : (
                         <div className="py-2.5 text-xs font-black uppercase tracking-[0.08em] text-[#a8a49a] text-center border-r-[3px] border-[#0a0a0a]" style={LABEL_MONO}>Connect to Join</div>
                       )}
-                      <Link href={`/dapp/pools/${pool.id}`} className="flex items-center justify-center py-2.5 text-xs font-black uppercase tracking-[0.08em] text-white bg-[#0a0a0a] hover:bg-[#333] transition gap-1" style={LABEL_MONO}>View Details →</Link>
+                      <Link href={`/dapp/pools/${pool.id}`} className="flex items-center justify-center py-2.5 text-xs font-black uppercase tracking-[0.08em] text-white bg-[#0a0a0a] hover:bg-[#333] transition gap-1" style={LABEL_MONO}>{d.dapp.pools.view} →</Link>
                     </div>
                   </div>
                 </div>

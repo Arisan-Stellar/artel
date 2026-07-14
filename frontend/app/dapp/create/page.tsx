@@ -5,11 +5,13 @@ import { getRequiredCollateralFromConfig } from "@/lib/poolMath";
 import { Wallet, Loader } from "lucide-react";
 import { HEADING_FONT, LABEL_MONO } from "@/components/dapp/ArtelHeader";
 import { useWallet } from "@/hooks/WalletContext";
+import { useDict } from "@/lib/i18n/LocaleProvider";
 import { Client } from "@/bindings/arisan-pool/src/index";
 import { CONTRACT_IDS, RPC_URL, XLM_CONTRACT, NETWORK_PASSPHRASE } from "@/lib/artel-sdk";
 
 export default function CreateArisanPage() {
   const { address } = useWallet();
+  const { dapp } = useDict();
   const [name, setName] = useState("");
   const [deposit, setDeposit] = useState(25);
   const [max, setMax] = useState(8);
@@ -25,8 +27,8 @@ export default function CreateArisanPage() {
       <div className="px-5 pb-20 pt-24 md:px-10 lg:px-12">
         <div className="mx-auto max-w-lg text-center">
           <Wallet className="size-16 mx-auto text-[var(--color-artel)] mb-4" />
-          <h1 className="text-4xl font-black" style={HEADING_FONT}>Create Arisan Pool</h1>
-          <p className="mt-4 text-lg font-semibold text-[#333333]">Connect your wallet to create a new ROSCA pool on Stellar Testnet.</p>
+          <h1 className="text-4xl font-black" style={HEADING_FONT}>{dapp.create.title}</h1>
+          <p className="mt-4 text-lg font-semibold text-[#333333]">{dapp.shared.connect} {dapp.create.poolName.toLowerCase()}</p>
         </div>
       </div>
     );
@@ -35,19 +37,19 @@ export default function CreateArisanPage() {
   return (
     <div className="px-5 pb-20 pt-24 md:px-10 lg:px-12">
       <div className="mx-auto max-w-lg">
-        <h1 className="text-5xl font-black leading-[0.95] tracking-[-0.06em] md:text-7xl mb-6" style={HEADING_FONT}>Create Pool</h1>
+        <h1 className="text-5xl font-black leading-[0.95] tracking-[-0.06em] md:text-7xl mb-6" style={HEADING_FONT}>{dapp.create.title}</h1>
         <div className="space-y-4">
           <div>
-            <label className="mb-1 block text-[10px] font-black uppercase tracking-[0.15em]" style={LABEL_MONO}>Pool Name</label>
+            <label className="mb-1 block text-[10px] font-black uppercase tracking-[0.15em]" style={LABEL_MONO}>{dapp.create.poolName}</label>
             <input value={name} onChange={(e) => setName(e.target.value)} className="w-full border-[3px] border-[#0a0a0a] bg-white px-3 py-2 text-sm font-semibold" placeholder="e.g. RT 05 Savings Circle" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-[10px] font-black uppercase tracking-[0.15em]" style={LABEL_MONO}>Deposit (XLM)</label>
+              <label className="mb-1 block text-[10px] font-black uppercase tracking-[0.15em]" style={LABEL_MONO}>{dapp.create.contribution}</label>
               <input type="number" value={deposit} onChange={(e) => setDeposit(Number(e.target.value))} className="w-full border-[3px] border-[#0a0a0a] bg-white px-3 py-2 text-sm font-semibold" />
             </div>
             <div>
-              <label className="mb-1 block text-[10px] font-black uppercase tracking-[0.15em]" style={LABEL_MONO}>Max Members</label>
+              <label className="mb-1 block text-[10px] font-black uppercase tracking-[0.15em]" style={LABEL_MONO}>{dapp.create.maxMembers}</label>
               <input type="number" value={max} onChange={(e) => setMax(Number(e.target.value))} className="w-full border-[3px] border-[#0a0a0a] bg-white px-3 py-2 text-sm font-semibold" />
             </div>
           </div>
@@ -146,7 +148,7 @@ export default function CreateArisanPage() {
             className="w-full border-[3px] border-[#0a0a0a] bg-[#f8672d] px-6 py-3 font-display text-lg tracking-tight hover:-translate-y-0.5 disabled:opacity-50 transition-all"
             style={HEADING_FONT}
           >
-            {deploying ? "Creating Pool..." : "Create Pool"}
+            {deploying ? dapp.create.creating : dapp.create.createBtn}
           </button>
         </div>
       </div>
