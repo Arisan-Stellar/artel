@@ -12,6 +12,9 @@ export default function YieldPage() {
   const [blendStats, setBlendStats] = useState({ staked: "0.0", yield: "0.00", gacha: "0.00", monthly: "0.00" });
   const [memberYields, setMemberYields] = useState<{ address: string, poolId: number, vault: number, gacha: number, merata: number, contributed: number, collateral: number, isMock: boolean }[]>([]);
   const { invokeContract } = useFreighterTx();
+
+  type MemberAgg = { address: string; poolId: number; vault: number; gacha: number; merata: number; contributed: number; collateral: number; isMock: boolean };
+  type LbEntry = [string, unknown];
   const [searchQuery, setSearchQuery] = useState("");
   const [alertMsg, setAlertMsg] = useState<string | null>(null);
   const [adminPools, setAdminPools] = useState<number[]>([]);
@@ -27,7 +30,7 @@ export default function YieldPage() {
       let aggStaked = 0;
       let aggGacha = 0;
       let aggMonthly = 0;
-      const memberAgg = new Map<string, any>();
+      const memberAgg = new Map<string, MemberAgg>();
       const myAdminPools: number[] = [];
 
       for (let i = 0; i < poolCount; i++) {
@@ -53,7 +56,7 @@ export default function YieldPage() {
             const lbData = await lbRes.json();
             if (lbData.get_leaderboard && Array.isArray(lbData.get_leaderboard)) {
               await Promise.all(
-                lbData.get_leaderboard.map(async (entry: any) => {
+                lbData.get_leaderboard.map(async (entry: LbEntry) => {
                   const addr = entry[0];
                   try {
                     const mRes = await fetch(`/api/contract-state?pool_id=${i}&fn=get_member_info&member=${addr}`);
@@ -67,7 +70,7 @@ export default function YieldPage() {
                     if (!memberAgg.has(key)) {
                       memberAgg.set(key, { address: addr, poolId: i, vault: 0, gacha: 0, merata: 0, contributed: 0, collateral: 0, isMock: false });
                     }
-                    const cur = memberAgg.get(key);
+                    const cur = memberAgg.get(key)!;
                     cur.contributed += contributed;
                     cur.collateral += collateral;
                     cur.gacha += (earned * 0.25);
@@ -193,7 +196,7 @@ export default function YieldPage() {
             </div>
             <h3 className="text-2xl font-black mb-3" style={HEADING_FONT}>2. Monthly Contribution Yield</h3>
             <p className="mt-4 text-xs font-semibold leading-relaxed text-[#333]">
-              Participants' deposits in the pool do not sit idle before the draw. These funds are staked to Blend, and the yield (Cumulative Yield) is dynamic. The withdrawal process is done at the end of the Pool period, which can be 1 month, 6 months, etc. depending on the Pool's duration.
+              Participants&apos; deposits in the pool do not sit idle before the draw. These funds are staked to Blend, and the yield (Cumulative Yield) is dynamic. The withdrawal process is done at the end of the Pool period, which can be 1 month, 6 months, etc. depending on the Pool&apos;s duration.
             </p>
             <div className="mt-6 pt-4 border-t-2 border-dashed border-[#0a0a0a]">
               <span className="text-[10px] font-black uppercase tracking-wider text-[#f59e0b]" style={LABEL_MONO}>Live Vault: {blendStats.monthly} XLM</span>
@@ -251,11 +254,11 @@ export default function YieldPage() {
             </div>
           </div>
           
-          <div className="border-[3px] border-[#0a0a0a] bg-[#fef9c3] p-4 shadow-[4px_4px_0_#0a0a0a] mb-6">
-            <p className="font-black text-sm uppercase text-[#0a0a0a]" style={LABEL_MONO}>Blend Integration & Simulation Info</p>
+          <div className="border-[3px] border-[#0a0a0a] bg-[#ccfbf1] p-4 shadow-[4px_4px_0_#0a0a0a] mb-6">
+            <p className="font-black text-sm uppercase text-[#0a0a0a]" style={LABEL_MONO}>Blend Protocol — Live</p>
             <ul className="mt-2 list-inside list-disc text-xs font-semibold leading-relaxed text-[#333]">
-              <li>Collateral is automatically deposited into <b>Blend Protocol</b> upon joining (*Join*). Yield runs on the network.</li>
-              <li>Only <b>Pool Admins</b> can harvest real yield (On-Chain) via the <b>Harvest</b> buttons below. If you are not an Admin, clicking the button will only trigger <b>Bypass Mode</b> (a visual simulation on your screen without modifying real data).</li>
+              <li>Collateral is automatically supplied to <a href="https://stellar.expert/explorer/testnet/contract/CCEBVDYM32YNYCVNRXQKDFFPISJJCV557CDZEIRBEE4NCV4KHPQ44HGF" target="_blank" rel="noopener noreferrer" className="underline text-[#0d9488] font-bold">Blend TestnetV2 Pool ↗</a> upon joining.</li>
+              <li>Only <b>Pool Admins</b> can harvest yield via the <b>Harvest</b> buttons below. Yield is withdrawn from Blend, re-supplied, and distributed 75/25 to members/gacha.</li>
             </ul>
           </div>
           

@@ -664,56 +664,6 @@ impl ArisanContract {
     }
 
     // -----------------------------------------------------------------------
-    // HARVEST YIELD — Admin deposits real yield from Blend into the pool
-    // -----------------------------------------------------------------------
-    pub fn harvest_yield(env: Env, pool_id: u32, amount: i128) -> Result<YieldDistribution, soroban_sdk::Error> {
-        let mut pool: Pool = load_pool(&env, pool_id);
-        pool.admin.require_auth();
-
-        assert!(amount > 0, "must harvest positive amount");
-
-        let ct = contract_id(&env);
-        transfer_from(&env, &pool.config.token, &pool.admin, &ct, amount);
-
-        let member_share = amount.saturating_mul(75) / 100;
-        let end_period_gacha = amount - member_share;
-        
-        // 25% goes to Gacha
-        pool.yield_balance = pool.yield_balance.saturating_add(end_period_gacha);
-
-        let active_count = pool.member_list.iter()
-            .filter(|a| pool.members.get(a.clone()).map(|m| m.is_active).unwrap_or(false))
-            .count() as i128;
-
-        let per_member_final = if active_count > 0 {
-            member_share / active_count
-        } else { 0 };
-
-        for maddr in pool.member_list.iter() {
-            if let Some(mut mi) = pool.members.get(maddr.clone()) {
-                if mi.is_active {
-                    mi.yield_earned = mi.yield_earned.saturating_add(per_member_final);
-                    pool.members.set(maddr, mi);
-                }
-            }
-        }
-
-        pool.col_yield_dist = pool.col_yield_dist.saturating_add(amount);
-        pool.last_harvest_time = env.ledger().timestamp();
-
-        let dist = YieldDistribution {
-            ops_share: 0,
-            member_share,
-            vault_share: 0,
-            per_member_share: per_member_final,
-        };
-
-    save_pool(&env, pool_id, &pool);
-    env.events().publish((symbol_short!("harvest"), amount), dist.clone());
-    Ok(dist)
-}
-
-    // -----------------------------------------------------------------------
     // HARVEST BLEND YIELD — withdraw principal+yield, re-supply principal, distribute difference
     // -----------------------------------------------------------------------
     pub fn harvest_blend_yield(env: Env, pool_id: u32) -> Result<YieldDistribution, soroban_sdk::Error> {
@@ -1349,18 +1299,4 @@ mod test {
         }
     }
 
-    #[test]
-    fn test_collateral_yield_no_phantom() {
-        let env = Env::default();
-        let (admin, vault, config) = setup(&env, 3);
-        let contract_id = env.register(ArisanContract, ());
-        let client = ArisanContractClient::new(&env, &contract_id);
-
-        env.mock_all_auths();
-        mint_to(&env, &config.token, &admin, 1000_0000000);
-        let pool_id = client.create_pool(&admin, &vault, &config);
-
-        env.mock_all_auths();
-        client.harvest_yield(&pool_id, &1000_i128);
-    }
 }
