@@ -171,22 +171,14 @@ fn transfer_from(env: &Env, token_addr: &Address, from: &Address, to: &Address, 
 
 #[allow(unused_variables)]
 fn blend_supply(env: &Env, blend_addr: &Address, _token_addr: &Address, _from: &Address, _amount: i128) {
-    // Cross-contract call to Blend Protocol — supply collateral for yield
-    #[cfg(not(test))]
-    {
-        let supply_args = (soroban_sdk::symbol_short!("supply"), _from, _amount);
-        env.invoke_contract::<soroban_sdk::Val>(blend_addr, &supply_args.0, soroban_sdk::vec![env, _from.to_val()]);
-    }
+// Blend Protocol not yet deployed — no-op
+    let _ = (env, blend_addr, _token_addr, _from, _amount);
 }
 
 #[allow(unused_variables)]
 fn blend_withdraw(env: &Env, blend_addr: &Address, _token_addr: &Address, _to: &Address, _amount: i128) {
-    // Cross-contract call to Blend Protocol — withdraw collateral from Blend
-    #[cfg(not(test))]
-    {
-        let withdraw_args = (soroban_sdk::symbol_short!("withdraw"), _to, _amount);
-        env.invoke_contract::<soroban_sdk::Val>(blend_addr, &withdraw_args.0, soroban_sdk::vec![env, _to.to_val()]);
-    }
+// Blend Protocol not yet deployed — no-op
+    let _ = (env, blend_addr, _token_addr, _to, _amount);
 }
 
 fn get_now(env: &Env) -> u64 { env.ledger().timestamp() }
