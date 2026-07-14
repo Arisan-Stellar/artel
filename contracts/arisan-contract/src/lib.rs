@@ -1,5 +1,7 @@
 #![no_std]
 use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, Address, Env, Map, String, Val, Vec, token};
+use soroban_sdk::auth::{InvokerContractAuthEntry, SubContractInvocation, ContractContext};
+use soroban_sdk::IntoVal;
 
 const DAY: u64 = 86400;
 const EARLY_WINDOW: u64 = DAY * 10;
@@ -188,19 +190,45 @@ fn blend_supply(env: &Env, blend_addr: &Address, token_addr: &Address, from: &Ad
     if amount <= 0 {
         return;
     }
+    let ct = contract_id(env);
     let request = BlendRequest {
         request_type: REQUEST_SUPPLY_COLLATERAL,
         address: token_addr.clone(),
         amount,
     };
     let requests = Vec::from_array(env, [request]);
-    let args = Vec::from_array(env, [
-        from.to_val(),
-        contract_id(env).to_val(),
-        from.to_val(),
-        requests.to_val(),
+    let fn_args = Vec::from_array(env, [from.to_val(), ct.to_val(), from.to_val(), requests.to_val()]);
+    let transfer_args = Vec::from_array(env, [ct.to_val(), blend_addr.to_val(), amount.into_val(env)]);
+
+    let auth_entries = Vec::from_array(env, [
+        InvokerContractAuthEntry::Contract(SubContractInvocation {
+            context: ContractContext {
+                contract: blend_addr.clone(),
+                fn_name: symbol_short!("submit"),
+                args: fn_args,
+            },
+            sub_invocations: Vec::new(env),
+        }),
+        InvokerContractAuthEntry::Contract(SubContractInvocation {
+            context: ContractContext {
+                contract: token_addr.clone(),
+                fn_name: symbol_short!("transfer"),
+                args: transfer_args,
+            },
+            sub_invocations: Vec::new(env),
+        }),
     ]);
-    let _: Val = env.invoke_contract(blend_addr, &symbol_short!("submit"), args);
+
+    let request2 = BlendRequest {
+        request_type: REQUEST_SUPPLY_COLLATERAL,
+        address: token_addr.clone(),
+        amount,
+    };
+    let requests2 = Vec::from_array(env, [request2]);
+    let invoke_args = Vec::from_array(env, [from.to_val(), ct.to_val(), from.to_val(), requests2.to_val()]);
+
+    env.authorize_as_current_contract(auth_entries);
+    let _: Val = env.invoke_contract(blend_addr, &symbol_short!("submit"), invoke_args);
 }
 
 fn blend_withdraw(env: &Env, blend_addr: &Address, token_addr: &Address, to: &Address, amount: i128) {
@@ -571,8 +599,6 @@ impl ArisanContract {
         pool.pool_funds_balance = 0;
 
         let ct = contract_id(&env);
-        blend_withdraw(&env, &pool.config.blend_address, &pool.config.token, &ct, payout);
-        pool.blend_btoken_balance = pool.blend_btoken_balance.saturating_sub(payout);
         pool.winner_payout_balance = pool.winner_payout_balance.saturating_add(payout);
 
         let mut winfo = pool.members.get(winner.clone()).unwrap();
@@ -781,8 +807,6 @@ impl ArisanContract {
         let ct = contract_id(&env);
         let mut distributed: i128 = 0;
         for w in winners.iter() {
-            blend_withdraw(&env, &pool.config.blend_address, &pool.config.token, &ct, w.prize_amount);
-            pool.blend_btoken_balance = pool.blend_btoken_balance.saturating_sub(w.prize_amount);
             transfer_from(&env, &pool.config.token, &ct, &w.address, w.prize_amount);
             distributed = distributed.saturating_add(w.prize_amount);
         }
