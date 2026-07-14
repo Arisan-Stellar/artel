@@ -120,3 +120,42 @@ cd contracts && cargo test && stellar contract build
 # Setelah perubahan frontend
 cd frontend && npx tsc --noEmit && npx eslint . --quiet && npm run build
 ```
+
+---
+
+## 🆕 New Files & Patterns (Added July 2026)
+
+### New key files
+| File | Purpose |
+|------|---------|
+| `.github/workflows/ci.yml` | GitHub Actions: cargo test + tsc + eslint on PR |
+| `.omo/plans/*.md` | AI agent work plans (historical) |
+
+### Blend Auth Pattern
+```rust
+// Di blend_supply() — authorize kontrak untuk panggil Blend.submit + token.transfer
+env.authorize_as_current_contract(Vec::from_array(env, [
+    InvokerContractAuthEntry::Contract(SubContractInvocation {
+        context: ContractContext { contract: blend, fn_name: "submit", args },
+        sub_invocations: vec![/* token.transfer */],
+    }),
+]));
+let _: Val = env.invoke_contract(blend_addr, &symbol_short!("submit"), args);
+```
+
+### Cross-contract Token Balance Query
+```rust
+// invoke_contract::<i128> works where TokenClient doesn't
+let balance: i128 = env.invoke_contract(&token, &symbol_short!("balance"), vec![addr]);
+```
+
+### Updated Rules
+- ✅ `Symbol::new()` untuk function names > 9 chars (symbol_short max 9)
+- ✅ `InvokerContractAuthEntry` harus flat (bukan nested) untuk Blend
+- ✅ JANGAN pake `TokenClient` di cross-contract context — pake `invoke_contract::<T>`
+- ✅ Setiap deploy kontrak baru → update `.env.local`, `.env.example`, `artel-sdk.ts`, docs
+
+### Test Patterns
+- `MockBlendPool` — mock Blend contract untuk unit test
+- `MockVault` — mock Vault contract untuk future vault wire testing
+- `env.mock_all_auths()` — skip auth checks di tests

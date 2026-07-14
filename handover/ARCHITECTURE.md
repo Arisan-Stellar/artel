@@ -150,3 +150,33 @@ Integrasi penuh butuh:
 2. Import Blend SDK (`@blend-capital/blend-contract-sdk`)
 3. Implementasi `submit(SupplyCollateral)` / `submit(WithdrawCollateral)` di kontrak
 4. Testing end-to-end
+
+---
+
+## 🆕 Blend Protocol Integration (Live)
+
+```
+arisan-contract ──blend_supply()──► Blend Pool (TestnetV2)
+                 ──blend_withdraw()► CCEBVDYM...
+                 ──harvest_blend_yield()──► balance_before/after tracking
+
+JOIN/CREATE:  member → ARTEL → blend_supply(submit(SupplyCollateral)) → Blend
+CLAIM_FINAL:  ARTEL ← blend_withdraw(submit(WithdrawCollateral)) ← Blend
+HARVEST:      withdraw 7.5B → re-supply 7.5B → yield = balance_after - balance_before
+```
+
+### Auth Pattern
+```
+User sign → ARTEL.invoke_contract(Blend, "submit", args)
+  → authorize_as_current_contract([Blend.submit, XLM.transfer])
+  → Blend checks spender.require_auth() → ARTEL in auth tree ✓
+```
+
+### New Functions
+| Function | Location | Purpose |
+|----------|----------|---------|
+| `blend_supply()` | lib.rs | Supply collateral to Blend via submit |
+| `blend_withdraw()` | lib.rs | Withdraw collateral from Blend |
+| `harvest_blend_yield()` | lib.rs | Withdraw+resupply, track yield, distribute 75/25 |
+| `BlendRequest` | lib.rs | Struct matching Blend's Request ABI |
+| `BlendPositions` | lib.rs | Struct matching Blend's Positions (for future get_positions) |

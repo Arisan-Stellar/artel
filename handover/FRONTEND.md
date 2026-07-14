@@ -121,3 +121,31 @@ Buttons (conditional):
 - **Fonts:** Bebas Neue (headings), Inter (body), Space Grotesk (numbers)
 - **Tabs:** Neo-brutalist — sliding indicator, radio buttons, CSS-only
 - **Badges:** AnimatedBadge component — letter-by-letter flip on hover
+
+---
+
+## 🆕 Updates (July 2026)
+
+### Yield Page Overhaul
+| Change | Before | After |
+|--------|--------|-------|
+| Harvest button | Simulation mode (bypass) | Real `harvest_blend_yield` via `useFreighterTx` |
+| Blend info | "Simulation Info" banner | Live Blend link to stellar.expert |
+| ESLint | 5 errors | 0 errors |
+| Data source | Mocked | Real `blend_btoken_balance` from chain |
+
+### Pool Detail Page
+- `blendStaked` now shows real Blend collateral values (was always 0)
+- No data format changes needed
+
+### Create Pool Page
+- `blend_address` fixed: was `XLM_CONTRACT`, now `CONTRACT_IDS.blend`
+
+### Mobile Responsive
+- Hamburger menu (Menu/X toggle) added to `dapp/layout.tsx`
+- Slide-down nav with all 7 dApp routes
+- Active state highlighting on mobile
+
+### New Error Mappings
+- `no new yield to distribute` → "Belum ada yield baru yang bisa dibagikan"
+- `no Blend collateral to harvest` → handled by assertion

@@ -1,65 +1,54 @@
 # 📋 ARTEL — Handover Dokumentasi Lengkap
 
-**Tujuan:** Dokumen ini dibuat untuk onboarding **programmer baru** atau **AI agent baru**
-yang akan melanjutkan development ARTEL. Baca berurutan dari atas ke bawah.
+**Untuk:** Programmer baru / AI agent baru.
 
-> **Setelah baca semua file di folder ini, kamu akan paham:**
-> - Project ini tentang apa dan kenapa dibuat
-> - Teknologi apa yang dipakai dan kenapa
-> - Arsitektur sistem secara keseluruhan
-> - Cara setup dan menjalankan project
-> - Semua yang sudah dikerjakan sejauh ini
-> - Apa yang masih perlu dikerjakan
+> Setelah baca semua file di folder ini, kamu akan paham project dari A-Z.
 
----
+## 📖 Urutan Baca
 
-## 📖 Urutan Baca (direkomendasikan)
+| # | File | Isi | Est. |
+|---|------|-----|------|
+| 1 | **PROJECT.md** | Business context, economic model, fitur | 10m |
+| 2 | **TECH-STACK.md** | Teknologi, versi, alasan | 5m |
+| 3 | **ARCHITECTURE.md** | Desain sistem, Blend integration | 15m |
+| 4 | **CODEBASE-GUIDE.md** | Struktur folder, rules, do/don't | 10m |
+| 5 | **SMART-CONTRACTS.md** | Kontrak, fungsi, state machine | 15m |
+| 6 | **FRONTEND.md** | Halaman, hooks, wallet, Blend UI | 10m |
+| 7 | **DEPLOYMENT.md** | Address, env vars, deploy flow | 5m |
+| 8 | **CHECKPOINTS.md** | Milestones, fase, test results | 5m |
+| 9 | **ROADMAP.md** | Yang belum, known issues | 5m |
+| 10 | **SESSION-LOG.md** | Kronologi lengkap semua work | 15m |
+| 11 | **WHAT-WE-DID.md** | Ringkasan semua pencapaian | 5m |
 
-| # | File | Isi | Estimasi |
-|---|------|-----|----------|
-| 1 | **`PROJECT.md`** | Project overview, business context, economic model (Fair ROSCA, All-in Join, Fee 0%) | 10 min |
-| 2 | **`TECH-STACK.md`** | Semua teknologi, versi, alasan pemilihan | 5 min |
-| 3 | **`ARCHITECTURE.md`** | Desain sistem, kontrak, frontend, data flow, wallet integration | 15 min |
-| 4 | **`CODEBASE-GUIDE.md`** | Struktur folder, file kunci, conventions, rules, do's & don'ts | 10 min |
-| 5 | **`SMART-CONTRACTS.md`** | Semua kontrak, fungsi, state machine, known issues, Blend status | 15 min |
-| 6 | **`FRONTEND.md`** | Halaman, komponen, hooks, wallet, error handling, UI fixes | 10 min |
-| 7 | **`DEPLOYMENT.md`** | Contract addresses, env vars, Vercel setup, deploy flow | 5 min |
-| 8 | **`SESSION-LOG.md`** | Kronologi lengkap semua yang dikerjakan (audit, fix, redeploy, docs) | 15 min |
-| 9 | **`CHECKPOINTS.md`** | Milestones, test results, verifikasi di tiap fase | 5 min |
-| 10 | **`ROADMAP.md`** | Yang belum selesai, known issues, next steps, Blend integration plan | 5 min |
-
----
-
-## 🚀 Quick Start (kalau cuma mau langsung jalanin)
+## 🚀 Quick Start
 
 ```bash
-# 1. Clone
-git clone https://github.com/Arisan-Stellar/artel.git
-cd artel
-git checkout faiz
-
-# 2. Frontend
-cd frontend
-cp .env.example .env.local   # udah ada fallback, optional
-npm install
-npm run dev                   # http://localhost:3000
-
-# 3. Contracts
-cd ../contracts
-cargo test                    # 12/12 tests
-stellar contract build        # build semua wasm
+git clone https://github.com/Arisan-Stellar/artel.git && cd artel && git checkout faiz
+cd frontend && cp .env.example .env.local && npm install && npm run dev
+cd ../contracts && cargo test && stellar contract build
 ```
-
----
 
 ## 📇 Referensi Cepat
 
 | Item | Value |
 |------|-------|
 | **Repo** | https://github.com/Arisan-Stellar/artel |
-| **Branch kerja** | `faiz` |
-| **Branch production** | `main` |
+| **Branch** | `faiz` (kerja) → PR ke `main` |
 | **Network** | Stellar Testnet |
-| **Contracts (live)** | arisan `CBDJOVCV...`, vault `CAW77FMN...` |
-| **Build status** | cargo 12/12 · tsc 0 · eslint 5 (pre-existing) · wasm clean |
-| **PRs** | #3 (merged), #5 (open) |
+| **Arisan** | `CDKJUY6T...` |
+| **Vault** | `CAW77FMN...` |
+| **Blend Pool** | `CCEBVDYM...` (TestnetV2) |
+| **Tests** | 11/11 cargo · 0 tsc · 0 eslint · wasm clean |
+| **Blend** | ✅ LIVE — supply, withdraw, harvest, yield tracking |
+
+## ⚡ Status (15 Juli 2026)
+
+| Area | Status |
+|------|--------|
+| Contracts | 4 kontrak, 11/11 tests, deployed testnet |
+| Blend | ✅ Auto-supply collateral, harvest yield on-chain |
+| Frontend | 18 routes, mobile menu, ESLint 0 |
+| Yield tracking | Balance diff via invoke_contract::<i128> |
+| CI/CD | GitHub Actions ready |
+| Demo pools | 3 pools seeded |
+| Vault wire | ❌ Deferred (Soroban auth blocked) |

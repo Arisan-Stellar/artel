@@ -91,3 +91,38 @@ sehingga collateral yang di-stake menghasilkan yield secara otomatis.
 | `artel-faucet` | Unused | App uses Friendbot (`/api/faucet`); contract can't mint XLM native SAC |
 | Old arisan `CAHJPUKI...` | Abandoned | Replaced by `CBDJOVCV...` (Blend framework) |
 | Old vault `CCBQFVC3...` | Abandoned | Replaced by `CAW77FMN...` |
+
+---
+
+## 🆕 Progress (July 2026)
+
+### ✅ DONE
+| # | Item | Commit | Date |
+|---|------|--------|------|
+| 1 | Blend Protocol integration | d30a3bc | 14 Jul |
+| 2 | Fix Blend from select_winner | 83f077f | 14 Jul |
+| 3 | harvest_blend_yield | 95fdcc8 | 14 Jul |
+| 4 | On-chain yield tracking | 8b997d2 | 14 Jul |
+| 5 | Remove deprecated harvest_yield | b27c963 | 14 Jul |
+| 6 | ESLint 4→0 | b27c963 | 14 Jul |
+| 7 | Demo pools seeded | b27c963 | 14 Jul |
+| 8 | Randomness upgrade | f97d4a7 | 15 Jul |
+| 9 | Audit bug fixes (2 critical) | 5b39361 | 15 Jul |
+| 10 | Mobile hamburger menu | bc0eca2 | 15 Jul |
+| 11 | CI/CD GitHub Actions | 404457c | 15 Jul |
+
+### ❌ DEFERRED
+| Item | Reason |
+|------|--------|
+| Vault auto-register (wire `register_participant`) | Soroban cross-contract auth blocked |
+| Git history scrub | Secret lama udah worthless (account-merged 404) |
+| Full i18n for dApp pages | Restructure besar, low priority |
+
+### 📌 REMAINING
+| Priority | Item | Effort |
+|----------|------|--------|
+| HIGH | Deploy kontrak terbaru + E2E (nunggu testnet) | 30m |
+| MEDIUM | Mobile responsive → lebih thorough (yield page, pool detail) | 30m |
+| MEDIUM | Merge faiz → main | 5m |
+| LOW | E2E test via browser (Playwright) | 2h |
+| LOW | On-chain event indexing | 4h |

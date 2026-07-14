@@ -142,3 +142,61 @@
 - ✅ README, PROJECT, TECH-STACK, ARCHITECTURE, CODEBASE-GUIDE
 - ✅ SMART-CONTRACTS, FRONTEND, DEPLOYMENT
 - ✅ SESSION-LOG (file ini), CHECKPOINTS, ROADMAP
+
+---
+
+## Phase 6: Blend Protocol Integration (14 Juli 2026)
+
+1. Research Blend Protocol — found TestnetV2 pool `CCEBVDYM...`, API `submit()` with `SupplyCollateral`/`WithdrawCollateral`
+2. Rewrote `blend_supply()`/`blend_withdraw()` from no-op → real `env.invoke_contract`
+3. Added `authorize_as_current_contract` for cross-contract auth (flat entries pattern)
+4. Fixed `blend_btoken_balance` tracking — now accurate
+5. Removed Blend from `contribute()` (collateral only, not contributions)
+6. Added Blend supply in `create_pool()` (admin collateral)
+7. `CONTRACT_IDS.blend` updated to TestnetV2 address
+8. Fixed create page `blend_address: XLM_CONTRACT` → `CONTRACT_IDS.blend`
+9. E2E verified: 3 rounds, 3 unique winners, Blend supply/withdraw confirmed on-chain
+10. Fixed: removed `blend_withdraw` from `select_winner` (pool from contributions, not Blend)
+11. Fixed: removed `blend_withdraw` from `disburse_pool_yield_gacha` (yield in contract)
+
+## Phase 7: Harvest Yield (14 Juli 2026)
+
+1. Added `harvest_blend_yield()` — withdraw all Blend collateral, re-supply principal
+2. Yield tracking via `invoke_contract::<i128>` on token `balance()` before/after
+3. `TokenClient::balance()` failed in contract context — switched to raw `invoke_contract`
+4. Distribution: 75% member (yield_earned) / 25% gacha (yield_balance)
+5. Frontend: harvest button wired to `harvest_blend_yield` via `useFreighterTx`
+6. Removed old `harvest_yield(pool_id, amount)` — deprecated manual deposit
+7. Removed `test_collateral_yield_no_phantom` — useless smoke test
+
+## Phase 8: Polish & Audit (14-15 Juli 2026)
+
+1. ESLint: 4 errors → 0 (fixed `any` types, unescaped quotes in yield page)
+2. Yield page: Blend live badge, stellar.expert link, removed simulation mode info
+3. Demo data: 3 pools seeded (E2E Blend, Micro Arisan, Premium Circle)
+4. Randomness upgrade: `derive_seed` with multiplicative nonce hash
+5. `bump_entropy_counter` — non-linear advance for better entropy
+6. **BUG FIX**: `exit()` missing `blend_withdraw` — collateral stuck in Blend
+7. **BUG FIX**: `claim_final()` was withdrawing total (collateral+yield) from Blend — only collateral should be withdrawn
+8. Vault Wire attempt: cross-contract auth `arisan→vault.register_participant` blocked by Soroban auth model. Deferred.
+
+## Phase 9: Infrastructure (15 Juli 2026)
+
+1. Mobile responsive: hamburger menu in dapp layout (Menu/X toggle, slide-down nav)
+2. i18n: dictionaries already complete (EN+ID for landing), dApp pages deferred
+3. CI/CD: `.github/workflows/ci.yml` — cargo test + tsc + eslint on PR/push
+4. Docs: full handover update — all 11 files synced to current state
+5. WHAT-WE-DID.md — complete achievement summary for new devs/AI
+
+### Commits (faiz branch)
+```
+404457c ci: GitHub Actions for PR quality gates
+bc0eca2 feat: mobile hamburger menu
+5b39361 fix: audit — exit + claim_final Blend bugs
+f97d4a7 feat: randomness upgrade
+b27c963 chore: remove harvest_yield, fix ESLint, seed demo
+8b997d2 feat: on-chain yield tracking via balance query
+95fdcc8 feat: harvest_blend_yield
+83f077f fix: remove Blend from select_winner
+d30a3bc feat: Blend Protocol integration
+```

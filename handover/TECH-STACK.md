@@ -99,3 +99,26 @@ Semua jalan di **Stellar Testnet**:
 - **package-lock.json:** jangan diubah sembarangan. Regenerate cuma kalau ada `ERESOLVE` / `npm ci` error.
 - **Playwright:** terinstall sebagai dev dependency TAPI TIDAK dipakai di production build. Kalau `npm ci` gagal karena transitive deps (`@emnapi/runtime`, `bufferutil`), jalankan `npm install` untuk sync lockfile.
 - **wasm32 target:** wajib `rustup target add wasm32v1-none` sebelum build kontrak.
+
+---
+
+## Blend Protocol Stack (Added July 2026)
+
+| Component | Details |
+|-----------|---------|
+| **Blend Pool** | TestnetV2: `CCEBVDYM...` |
+| **Pool Factory** | `CDV6RX4C...` |
+| **Assets** | XLM, USDC, wETH, wBTC |
+| **Cross-contract** | `env.invoke_contract` + `authorize_as_current_contract` |
+| **Auth pattern** | Flat `InvokerContractAuthEntry` untuk authorize sub-contract calls |
+| **Yield tracking** | `invoke_contract::<i128>` on token `balance()` before/after withdraw+resupply |
+
+### Key dependencies (unchanged from base)
+```json
+{
+  "next": "^16.2.9",
+  "react": "^19.2.4",
+  "@stellar/stellar-sdk": "^14.5.0",
+  "soroban-sdk": "22.0.0"
+}
+```

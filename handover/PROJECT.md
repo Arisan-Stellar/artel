@@ -78,3 +78,34 @@ Saat JOIN, anggota **langsung bayar collateral + iuran ronde pertama** sekaligus
 | **Config via `NEXT_PUBLIC_*`** | Semua config pakai env vars dengan fallback di `artel-sdk.ts` |
 | **Wallet signing** | User tanda tangan sendiri via Freighter/Albedo/xBull/Lobstr — aplikasi TIDAK pegang secret key user |
 | **Blend Protocol** | Integrasi Blend (lending protocol) DIRENCANAKAN tapi BELUM LIVE — kode kerangka ada, fungsi no-op |
+
+---
+
+## 🆕 Blend Protocol Integration (Added July 2026)
+
+ARTEL sekarang terintegrasi dengan **Blend Protocol** — lending protocol di Stellar (seperti Aave).
+Collateral member (≥125%) otomatis di-supply ke Blend pool TestnetV2 untuk menghasilkan yield.
+
+| Fitur | Blend Action |
+|-------|-------------|
+| Create Pool / Join | Collateral auto-supply ke Blend via `submit(SupplyCollateral)` |
+| Claim Final / Exit | Collateral auto-withdraw dari Blend via `submit(WithdrawCollateral)` |
+| Harvest Yield | Admin klik → withdraw semua + re-supply principal → yield ke-track on-chain |
+| Yield Distribution | 75% dibagi rata ke member / 25% masuk vault gacha |
+
+## 🟢 Fitur Saat Ini
+
+| Fitur | Status |
+|-------|--------|
+| Fair ROSCA (semua bayar tiap ronde) | ✅ |
+| All-in Join (collateral + iuran cycle-1) | ✅ |
+| Fee 0% (admin_fee_bps = 0) | ✅ |
+| ≥125% Collateral guarantee | ✅ |
+| Blend Protocol yield | ✅ LIVE |
+| Harvest yield on-chain | ✅ |
+| Gacha jackpot tahunan | ✅ |
+| Mobile responsive (hamburger) | ✅ |
+| CI/CD GitHub Actions | ✅ |
+| Multi-wallet (Freighter, Albedo, xBull, Lobstr) | ✅ |
+| i18n EN + ID (landing page) | ✅ |
+| Vault auto-register | ❌ Deferred |
