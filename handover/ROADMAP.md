@@ -1,10 +1,42 @@
 # 🗺️ ARTEL — Roadmap & Known Issues
 
+## 🔥 NEXT STEP (Priority #1) — Blend Protocol Yield Integration
+
+**Goal:** Integrasi beneran antara ARTEL arisan-contract dengan Blend Protocol pool 
+sehingga collateral yang di-stake menghasilkan yield secara otomatis.
+
+### Yang sudah ada (kerangka)
+- ✅ `blend_address` di `ArisanConfig` (field untuk address Blend Pool)
+- ✅ `blend_btoken_balance` di `Pool` struct (tracking internal)
+- ✅ `blend_supply()` / `blend_withdraw()` — fungsi no-op (kerangka, belum nyala)
+- ✅ `harvest_yield()` — admin bisa deposit yield manual
+- ✅ `/dapp/yield` page — UI untuk yield dashboard (Edwin's PR)
+- ✅ `CONTRACT_IDS.blend` di `artel-sdk.ts`
+
+### Yang perlu dikerjakan
+| # | Task | Detail |
+|---|------|--------|
+| 1 | **Cari Blend Pool address** | Blend Protocol v2 udah terdeploy di testnet. Pool Factory: `CDSYOAVXFY7SM5S64IZPPPYB4GVGGLMQVFREPSQQEZVIWXX5R23G4QSU`. BUTUH: address Pool spesifik yg nerima XLM & punya backstop. Cek `blend-utils/testnet.contracts.json` |
+| 2 | **Import Blend SDK** | Pakai `@blend-capital/blend-contract-sdk` (Rust) atau `@blend-capital/blend-sdk` (JS). Atau langsung `env.invoke_contract` dengan format `submit` yang benar |
+| 3 | **Rewrite `blend_supply`** | Bukan manggil `supply` (fungsi nggak ada), tapi **`submit` dengan `SupplyCollateral` request type**. Format: `pool.submit({ from, spender, to, requests: [{ amount, request_type: SupplyCollateral, address: XLM }] })` |
+| 4 | **Rewrite `blend_withdraw`** | Sama — `submit` dengan `WithdrawCollateral` request type |
+| 5 | **Fix `blend_btoken_balance` tracking** | Saat ini balance tracking kacau karena Blend no-op. Perlu sync dengan actual Blend position |
+| 6 | **Aktifkan di join/create/contribute/claim** | Panggil `blend_supply` pas JOIN/CREATE (collateral) dan CONTRIBUTE (iuran). Panggil `blend_withdraw` pas CLAIM_FINAL/EXIT |
+| 7 | **Deploy + test** | Redeploy kontrak → create pool → join → cek yield di `/dapp/yield` |
+| 8 | **Update UI** | Tampilkan Blend Staked stat yang akurat (bukan minus), harvest yield button, live yield data |
+
+### Diskusi yang perlu diselesaikan sebelum mulai
+- **A. Supply collateral doang, atau iuran juga?** Collateral jumlah besar (≥125%) → yield signifikan. Iuran nilainya kecil → complexity vs benefit?
+- **B. Harvest: manual (admin) atau otomatis?** Manual lebih hemat gas. Otomatis lebih adil tapi mahal.
+- **C. Blend Pool: pakai yang udah ada atau deploy sendiri?** Cek dulu ada yg nerima XLM di testnet.
+- **D. Risiko:** Blend di-hack → collateral lenyap. Liquidity crunch → yield 0. Perlu mitigasi.
+
+---
+
 ## Priority: HIGH (sebelum mainnet)
 
 | # | Item | Detail | Effort |
 |---|------|--------|--------|
-| 1 | **Blend Protocol integration** | Implementasi `blend_supply`/`blend_withdraw` pake `submit(SupplyCollateral)`/`submit(WithdrawCollateral)` ke Blend Pool. Perlu: (a) cari/deploy Blend Pool yg nerima XLM, (b) import Blend SDK, (c) rewrite cross-contract calls, (d) fix `blend_btoken_balance` tracking, (e) deploy + test | Large |
 | 2 | **Randomness upgrade** | Ganti `derive_seed` (admin-timing biasable) dengan VRF atau commit-reveal scheme. Critical untuk mainnet fairness | Medium |
 | 3 | **Wire vault `register_participant`** | Auto-register member ke vault saat contribute (saat ini admin-manual lewat CLI). Ganti auth dari admin ke arisan contract address | Small |
 | 4 | **Wire vault `receive_yield`** | Panggil vault dari `distribute_collateral_yield` via `env.invoke_contract`. Saat ini yield manual transfer | Medium |
