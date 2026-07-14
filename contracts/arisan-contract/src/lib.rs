@@ -442,6 +442,8 @@ impl ArisanContract {
         let refund = collateral_refund.saturating_add(deposit_refund);
 
         let ct = contract_id(&env);
+        blend_withdraw(&env, &pool.config.blend_address, &pool.config.token, &ct, collateral_refund);
+        pool.blend_btoken_balance = pool.blend_btoken_balance.saturating_sub(collateral_refund);
         transfer_from(&env, &pool.config.token, &ct, &member, refund);
 
         pool.members.remove(member.clone());
@@ -866,8 +868,8 @@ impl ArisanContract {
         let total = collateral_return.saturating_add(yield_return);
 
         let ct = contract_id(&env);
-        blend_withdraw(&env, &pool.config.blend_address, &pool.config.token, &ct, total);
-        pool.blend_btoken_balance = pool.blend_btoken_balance.saturating_sub(total);
+        blend_withdraw(&env, &pool.config.blend_address, &pool.config.token, &ct, collateral_return);
+        pool.blend_btoken_balance = pool.blend_btoken_balance.saturating_sub(collateral_return);
         transfer_from(&env, &pool.config.token, &ct, &member, total);
 
         info.gacha_claimed = true;
