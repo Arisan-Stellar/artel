@@ -1,5 +1,5 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, Address, Env, Map, String, Val, Vec, token};
+use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, Address, Env, Map, String, Symbol, Val, Vec, token};
 use soroban_sdk::auth::{InvokerContractAuthEntry, SubContractInvocation, ContractContext};
 use soroban_sdk::IntoVal;
 
@@ -359,6 +359,31 @@ impl ArisanContract {
             pool.is_full = true;
         }
 
+        // VAULT WIRE: auto-register admin as gacha participant (all-in join = early, 3 tickets)
+        let tickets = 3u32;
+        let vault_addr = pool.yield_vault.clone();
+        let arisan_addr = env.current_contract_address();
+        env.authorize_as_current_contract(Vec::from_array(&env, [
+            InvokerContractAuthEntry::Contract(SubContractInvocation {
+                context: ContractContext {
+                    contract: vault_addr.clone(),
+                    fn_name: Symbol::new(&env, "register_participant"),
+                    args: Vec::from_array(&env, [
+                        arisan_addr.to_val(),
+                        admin.to_val(),
+                        tickets.into_val(&env),
+                    ]),
+                },
+                sub_invocations: Vec::new(&env),
+            }),
+        ]));
+        let vault_args = Vec::from_array(&env, [
+            arisan_addr.to_val(),
+            admin.to_val(),
+            tickets.into_val(&env),
+        ]);
+        let _: Val = env.invoke_contract(&vault_addr, &Symbol::new(&env, "register_participant"), vault_args);
+
         save_pool(&env, pool_id, &pool);
         env.storage().instance().set(&symbol_short!("count"), &(pool_id + 1));
         env.storage().instance().set(&symbol_short!("n"), &0u64);
@@ -421,6 +446,31 @@ impl ArisanContract {
         if pool.member_list.len() == pool.config.max_members as u32 {
             pool.is_full = true;
         }
+
+        // VAULT WIRE: auto-register new member as gacha participant (all-in join = early, 3 tickets)
+        let tickets = 3u32;
+        let vault_addr = pool.yield_vault.clone();
+        let arisan_addr = env.current_contract_address();
+        env.authorize_as_current_contract(Vec::from_array(&env, [
+            InvokerContractAuthEntry::Contract(SubContractInvocation {
+                context: ContractContext {
+                    contract: vault_addr.clone(),
+                    fn_name: Symbol::new(&env, "register_participant"),
+                    args: Vec::from_array(&env, [
+                        arisan_addr.to_val(),
+                        member.to_val(),
+                        tickets.into_val(&env),
+                    ]),
+                },
+                sub_invocations: Vec::new(&env),
+            }),
+        ]));
+        let vault_args = Vec::from_array(&env, [
+            arisan_addr.to_val(),
+            member.to_val(),
+            tickets.into_val(&env),
+        ]);
+        let _: Val = env.invoke_contract(&vault_addr, &Symbol::new(&env, "register_participant"), vault_args);
 
         save_pool(&env, pool_id, &pool);
         env.events().publish((symbol_short!("memjoin"), collateral), member);
@@ -520,6 +570,31 @@ impl ArisanContract {
         info.deposited_this_round = true;
         info.last_deposit_round = pool.current_round;
         pool.pool_funds_balance = pool.pool_funds_balance.saturating_add(contribution);
+
+        // VAULT WIRE: auto-register member to gacha vault with dynamic tickets
+        let tickets = compute_tickets(&info);
+        let vault_addr = pool.yield_vault.clone();
+        let arisan_addr = env.current_contract_address();
+        env.authorize_as_current_contract(Vec::from_array(&env, [
+            InvokerContractAuthEntry::Contract(SubContractInvocation {
+                context: ContractContext {
+                    contract: vault_addr.clone(),
+                    fn_name: Symbol::new(&env, "register_participant"),
+                    args: Vec::from_array(&env, [
+                        arisan_addr.to_val(),
+                        member.to_val(),
+                        tickets.into_val(&env),
+                    ]),
+                },
+                sub_invocations: Vec::new(&env),
+            }),
+        ]));
+        let vault_args = Vec::from_array(&env, [
+            arisan_addr.to_val(),
+            member.to_val(),
+            tickets.into_val(&env),
+        ]);
+        let _: Val = env.invoke_contract(&vault_addr, &Symbol::new(&env, "register_participant"), vault_args);
 
         pool.members.set(member.clone(), info.clone());
         pool.active_depositors_count = pool.active_depositors_count.saturating_add(1);

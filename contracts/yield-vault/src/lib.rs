@@ -110,9 +110,7 @@ impl YieldVault {
     }
 
     pub fn register_participant(env: Env, arisan: Address, participant: Address, tickets: u32) {
-        let admin: Address = env.storage().instance().get(&VaultKey::Admin).unwrap();
-        admin.require_auth();
-        let _ = arisan;
+        arisan.require_auth();
         let mut count: u32 = env.storage().instance().get(&VaultKey::ArisanCount).unwrap_or(0);
         let key = VaultKey::Participant(count);
         env.storage().instance().set(&key, &(participant, tickets));
@@ -212,6 +210,10 @@ impl YieldVault {
         let admin: Address = env.storage().instance().get(&VaultKey::Admin).unwrap();
         admin.require_auth();
         env.storage().instance().set(&VaultKey::GachaLocked, &false);
+    }
+
+    pub fn get_participant_count(env: Env) -> u32 {
+        env.storage().instance().get(&VaultKey::ArisanCount).unwrap_or(0)
     }
 
     pub fn get_state(env: Env) -> (i128, i128, u64, bool) {
