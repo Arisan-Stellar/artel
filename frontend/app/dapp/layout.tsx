@@ -7,6 +7,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { WalletProvider, useWallet } from "@/hooks/WalletContext";
+import { Menu, X } from "lucide-react";
 
 const NAV = [
   { label: "POOLS", href: "/dapp/pools" },
@@ -23,6 +24,7 @@ function HeaderInner() {
   const walletLabel = walletType === "freighter" ? "Freighter" : walletType === "albedo" ? "Albedo" : walletType === "xbull" ? "xBull" : walletType === "lobstr" ? "Lobstr" : "Wallet";
   const pathname = usePathname();
   const isActive = (href: string) => pathname === href;
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <header className="fixed inset-x-0 top-0 z-[999] flex items-center justify-between px-2 py-3 sm:px-4 sm:py-4 bg-[var(--color-artel)]/90 backdrop-blur-sm">
@@ -46,6 +48,14 @@ function HeaderInner() {
       </div>
 
       <div className="flex items-center gap-1 sm:gap-1.5">
+        <button
+          type="button"
+          onClick={() => setMenuOpen(!menuOpen)}
+          className="lg:hidden border-[2px] border-[#0a0a0a] bg-white p-2 shadow-[3px_3px_0_#0a0a0a]"
+          aria-label="Toggle menu"
+        >
+          {menuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+        </button>
         {address ? (
           <button
             type="button"
@@ -71,6 +81,20 @@ function HeaderInner() {
           </button>
         )}
       </div>
+      {menuOpen && (
+        <div className="absolute top-full left-0 right-0 border-b-[3px] border-[#0a0a0a] bg-[var(--color-artel)] p-4 shadow-[0_6px_0_#0a0a0a] lg:hidden z-50">
+          <div className="flex flex-col gap-1">
+            {NAV.map((item) => (
+              <Link key={item.href} href={item.href} onClick={() => setMenuOpen(false)}
+                className={`px-4 py-3 text-sm font-black border-[2px] transition tracking-[0.06em] ${
+                  isActive(item.href) ? "bg-[var(--color-crack)] text-white border-[var(--color-crack)]" : "bg-white text-[#0a0a0a] border-[#0a0a0a] hover:bg-[var(--color-crack)] hover:text-white"
+                }`}
+                style={{ fontFamily: "'Bebas Neue', system-ui, sans-serif" }}
+              >{item.label}</Link>
+            ))}
+          </div>
+        </div>
+      )}
     </header>
   );
 }
