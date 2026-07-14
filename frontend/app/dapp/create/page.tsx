@@ -111,7 +111,7 @@ export default function CreateArisanPage() {
                     early_points: 3,
                     mid_points: 1,
                     late_penalty: -2,
-                    blend_address: XLM_CONTRACT,
+                    blend_address: CONTRACT_IDS.blend,
                   },
                 });
 

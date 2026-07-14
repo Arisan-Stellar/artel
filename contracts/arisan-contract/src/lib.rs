@@ -1,5 +1,5 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, Address, Env, Map, String, Vec, token};
+use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, Address, Env, Map, String, Val, Vec, token};
 
 const DAY: u64 = 86400;
 const EARLY_WINDOW: u64 = DAY * 10;
@@ -107,6 +107,21 @@ pub struct GachaWinner {
     pub prize_amount: i128,
 }
 
+// Blend Protocol request type constants
+// SupplyCollateral = 2, WithdrawCollateral = 3
+// (defined manually — no Blend SDK import needed)
+pub const REQUEST_SUPPLY_COLLATERAL: u32 = 2;
+pub const REQUEST_WITHDRAW_COLLATERAL: u32 = 3;
+
+#[rustfmt::skip]
+#[derive(Clone, Debug, PartialEq)]
+#[contracttype]
+pub struct BlendRequest {
+    pub request_type: u32,
+    pub address: Address,
+    pub amount: i128,
+}
+
 fn validate_config(config: &ArisanConfig) {
     assert!(config.max_members >= 2, "need at least 2 members");
     assert!(config.contribution_amount > 0, "contribution must be positive");
@@ -169,16 +184,42 @@ fn transfer_from(env: &Env, token_addr: &Address, from: &Address, to: &Address, 
     tk.transfer(from, to, &amount);
 }
 
-#[allow(unused_variables)]
-fn blend_supply(env: &Env, blend_addr: &Address, _token_addr: &Address, _from: &Address, _amount: i128) {
-// Blend Protocol not yet deployed — no-op
-    let _ = (env, blend_addr, _token_addr, _from, _amount);
+fn blend_supply(env: &Env, blend_addr: &Address, token_addr: &Address, from: &Address, amount: i128) {
+    if amount <= 0 {
+        return;
+    }
+    let request = BlendRequest {
+        request_type: REQUEST_SUPPLY_COLLATERAL,
+        address: token_addr.clone(),
+        amount,
+    };
+    let requests = Vec::from_array(env, [request]);
+    let args = Vec::from_array(env, [
+        from.to_val(),
+        contract_id(env).to_val(),
+        from.to_val(),
+        requests.to_val(),
+    ]);
+    let _: Val = env.invoke_contract(blend_addr, &symbol_short!("submit"), args);
 }
 
-#[allow(unused_variables)]
-fn blend_withdraw(env: &Env, blend_addr: &Address, _token_addr: &Address, _to: &Address, _amount: i128) {
-// Blend Protocol not yet deployed — no-op
-    let _ = (env, blend_addr, _token_addr, _to, _amount);
+fn blend_withdraw(env: &Env, blend_addr: &Address, token_addr: &Address, to: &Address, amount: i128) {
+    if amount <= 0 {
+        return;
+    }
+    let request = BlendRequest {
+        request_type: REQUEST_WITHDRAW_COLLATERAL,
+        address: token_addr.clone(),
+        amount,
+    };
+    let requests = Vec::from_array(env, [request]);
+    let args = Vec::from_array(env, [
+        to.to_val(),
+        to.to_val(),
+        contract_id(env).to_val(),
+        requests.to_val(),
+    ]);
+    let _: Val = env.invoke_contract(blend_addr, &symbol_short!("submit"), args);
 }
 
 fn get_now(env: &Env) -> u64 { env.ledger().timestamp() }
@@ -249,6 +290,8 @@ impl ArisanContract {
         let contribution = pool.config.contribution_amount;
         let ct = contract_id(&env);
         transfer_from(&env, &pool.config.token, &admin, &ct, collateral.saturating_add(contribution));
+        blend_supply(&env, &pool.config.blend_address, &pool.config.token, &ct, collateral);
+        pool.blend_btoken_balance = pool.blend_btoken_balance.saturating_add(collateral);
 
         pool.collateral_balance = collateral;
         pool.collateral_yield_balance = collateral;
@@ -434,8 +477,6 @@ impl ArisanContract {
 
         let ct = contract_id(&env);
         transfer_from(&env, &pool.config.token, &member, &ct, contribution);
-        blend_supply(&env, &pool.config.blend_address, &pool.config.token, &ct, contribution);
-        pool.blend_btoken_balance = pool.blend_btoken_balance.saturating_add(contribution);
 
         info.total_contributed = info.total_contributed.saturating_add(contribution);
         info.deposited_this_round = true;
@@ -893,6 +934,14 @@ mod test {
     use soroban_sdk::testutils::{Address as _, Ledger as _};
     use soroban_sdk::token::StellarAssetClient;
 
+    #[contract]
+    pub struct MockBlendPool;
+
+    #[contractimpl]
+    impl MockBlendPool {
+        pub fn submit(_env: Env, _from: Address, _spender: Address, _to: Address, _requests: Vec<BlendRequest>) {}
+    }
+
     fn deploy_token(env: &Env, admin: &Address) -> Address {
         let sac = env.register_stellar_asset_contract_v2(admin.clone());
         sac.address()
@@ -913,7 +962,7 @@ mod test {
             contribution_amount: 100_0000000,
             collateral_ratio_bps: 12500,
             token: token_addr,
-            blend_address: Address::generate(env),
+            blend_address: env.register(MockBlendPool, ()),
             max_members: members_count,
             round_duration: 30 * DAY,
             slash_grace_period: 20 * DAY,

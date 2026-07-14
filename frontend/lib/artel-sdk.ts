@@ -14,7 +14,7 @@ export const CONTRACT_IDS = {
   // Active yield-vault (init + set_token done)
   vault: process.env.NEXT_PUBLIC_CONTRACT_VAULT || "CAW77FMNIHKNCPU6WTFCA7VF42WS3JU5DUXBKZWELGARJ5E6DMYNFW5V",
   // Blend lending pool address (supply/withdraw collateral for yield)
-  blend: process.env.NEXT_PUBLIC_CONTRACT_BLEND || "",
+  blend: process.env.NEXT_PUBLIC_CONTRACT_BLEND || "CCEBVDYM32YNYCVNRXQKDFFPISJJCV557CDZEIRBEE4NCV4KHPQ44HGF",
 };
 
 // XLM native token contract
