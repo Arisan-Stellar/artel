@@ -414,7 +414,7 @@ export default function YieldPage() {
                           return;
                         }
                       }}
-                      className="mt-4 w-full border-[3px] border-[#0a0a0a] bg-[var(--color-purple)] px-4 py-2 text-xs font-black uppercase text-white shadow-[4px_4px_0_#0a0a0a] hover:-translate-y-0.5 hover:shadow-[6px_6px_0_#0a0a0a] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all"
+                      className="mt-4 w-full border-[3px] border-[#0a0a0a] bg-[#a855f7] px-4 py-2 text-xs font-black uppercase text-white shadow-[4px_4px_0_#0a0a0a] hover:-translate-y-0.5 hover:shadow-[6px_6px_0_#0a0a0a] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all"
                     >
                       {dapp.yield_.simulate}
                     </button>
