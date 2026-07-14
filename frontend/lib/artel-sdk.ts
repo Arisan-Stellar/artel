@@ -10,9 +10,9 @@ export const NETWORK_PASSPHRASE = process.env.NEXT_PUBLIC_NETWORK_PASSPHRASE || 
 // Smart contract IDs — override via NEXT_PUBLIC_CONTRACT_* env vars
 export const CONTRACT_IDS = {
   // Active arisan contract (audited + redeployed with fixes)
-  pool: process.env.NEXT_PUBLIC_CONTRACT_POOL || "CAHJPUKIDNVHJ2UQBMM65357I67LJXDQZKCC4DXAK6W4KQBXD2SQIQBT",
+  pool: process.env.NEXT_PUBLIC_CONTRACT_POOL || "CC7IZDSKASI5Y3XBT2DKGX5UETV7NZWX4XTGDOOQPVKO6ADIE52TO5EZ",
   // Active yield-vault (init + set_token done)
-  vault: process.env.NEXT_PUBLIC_CONTRACT_VAULT || "CCBQFVC34ZAXC3DTCTKCSIAEWQ4QS67LQQ7F2RL5DSGXJWV2XXY4YAEH",
+  vault: process.env.NEXT_PUBLIC_CONTRACT_VAULT || "CAW77FMNIHKNCPU6WTFCA7VF42WS3JU5DUXBKZWELGARJ5E6DMYNFW5V",
   // Blend lending pool address (supply/withdraw collateral for yield)
   blend: process.env.NEXT_PUBLIC_CONTRACT_BLEND || (process.env.NEXT_PUBLIC_NETWORK === "testnet"
     ? "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC"

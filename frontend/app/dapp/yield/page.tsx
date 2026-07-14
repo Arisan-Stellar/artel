@@ -25,8 +25,8 @@ export default function YieldPage() {
       let aggStaked = 0;
       let aggGacha = 0;
       let aggMonthly = 0;
-      let memberAgg = new Map<string, any>();
-      let myAdminPools: number[] = [];
+      const memberAgg = new Map<string, any>();
+      const myAdminPools: number[] = [];
 
       for (let i = 0; i < poolCount; i++) {
         try {
