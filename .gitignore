@@ -34,3 +34,5 @@ suivan/
 *.md
 !/README.md
 !/update-faiz/*.md
+
+/refs-suivan

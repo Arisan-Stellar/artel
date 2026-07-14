@@ -9,9 +9,55 @@ import { RPC_URL, NETWORK_PASSPHRASE, NETWORK } from "@/lib/artel-sdk";
 const WALLET_NET_ALBEDO = NETWORK === "public" ? "public" : "testnet";
 const WALLET_NET_XBULL = NETWORK === "public" ? "PUBLIC" : "TESTNET";
 
+const ERROR_MAP: [RegExp, string][] = [
+  // Assertion messages dari contract (paling umum)
+  [/not all active members have deposited/i, "⏳ Belum semua anggota bayar iuran ronde ini. Tunggu semua deposit dulu."],
+  [/no eligible winner this round/i, "Tidak ada anggota yang eligible untuk menang. Semua mungkin sudah menang."],
+  [/pool not active/i, "Pool belum aktif / belum dimulai."],
+  [/pool not accepting members/i, "Pool sudah tidak menerima anggota baru."],
+  [/already a member/i, "Kamu sudah menjadi anggota pool ini."],
+  [/already deposited this round/i, "Kamu sudah bayar iuran untuk ronde ini."],
+  [/pool is full/i, "Pool sudah penuh. Gabung ke pool lain yang masih buka."],
+  [/pool is paused/i, "Pool sedang dijeda oleh admin."],
+  [/not a member/i, "Kamu bukan anggota pool ini."],
+  [/member is not active/i, "Akun member tidak aktif."],
+  [/can only exit before pool starts/i, "Cuma bisa keluar sebelum pool dimulai."],
+  [/no pending payout/i, "Tidak ada kemenangan yang bisa dicairkan."],
+  [/payout already claimed/i, "Kemenangan sudah pernah dicairkan sebelumnya."],
+  [/pool not completed/i, "Pool belum selesai. Tunggu sampai semua ronde selesai."],
+  [/no yield to distribute/i, "Belum ada yield yang bisa dibagikan."],
+  [/only admin|admin only|admin require/i, "Hanya admin pool yang bisa melakukan aksi ini."],
+  [/already claimed|gacha_claimed/i, "Sudah pernah diklaim sebelumnya."],
+  [/need at least 2 members/i, "Minimal 2 anggota untuk membuat pool."],
+  [/contribution must be positive/i, "Jumlah iuran harus lebih dari 0."],
+  [/slash.*period not reached/i, "Belum waktunya potong collateral — grace period belum lewat."],
+  [/member already deposited/i, "Anggota ini sudah deposit ronde ini."],
+  [/no new yield to distribute/i, "Belum ada yield baru yang bisa dibagikan."],
+  // Wallet / koneksi errors
+  [/Wallet not connected/i, "Wallet belum terhubung. Klik CONNECT dulu."],
+  [/user rejected/i, "Transaksi dibatalkan di wallet."],
+  [/txTooLate|timeout/i, "Transaksi terlalu lama — coba lagi."],
+  [/insufficient.*balance|source account balance/i, "Saldo XLM tidak cukup untuk transaksi ini."],
+  [/Send failed/i, "Gagal mengirim transaksi ke jaringan Stellar."],
+  [/Simulation failed/i, "Kontrak menolak transaksi. Cek kondisi pool."],
+  [/ContractError|HostError/i, "Error dari smart contract. Cek apakah data yang dimasukkan benar."],
+];
+
+function friendlyError(raw: string): string {
+  for (const [pattern, msg] of ERROR_MAP) {
+    if (pattern.test(raw)) return msg;
+  }
+  // Kalau ada assertion message yang kelihatan di error, extract
+  const quoteMatch = raw.match(/"([^"]{10,})"/);
+  if (quoteMatch) return `Error: ${quoteMatch[1]}`;
+  // Fallback: potong supaya gak kepanjangan
+  if (raw.length > 120) return raw.slice(0, 120) + "...";
+  return raw;
+}
+
 function errMessage(e: unknown): string {
-  if (typeof e === "string") return e;
-  if (e instanceof Error) return e.message;
+  if (typeof e === "string") return friendlyError(e);
+  if (e instanceof Error) return friendlyError(e.message);
   return JSON.stringify(e);
 }
 
