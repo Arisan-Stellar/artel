@@ -67,7 +67,7 @@ export default function CreateArisanPage() {
           )}
           {result && (
             <div className="border-[3px] border-[#0a0a0a] bg-[var(--color-teal)] bg-opacity-10 p-4 text-center">
-              <p className="text-lg font-black text-[var(--color-teal)]" style={HEADING_FONT}>Pool Created! ✅</p>
+              <p className="text-lg font-black text-[#0a0a0a]" style={HEADING_FONT}>Pool Created! ✅</p>
               <p className="mt-2 text-xs font-mono break-all text-[#333]">{result}</p>
               <a href={`/dapp/pools/${result}`} className="inline-block mt-3 border-[3px] border-[#0a0a0a] bg-[var(--color-teal)] px-6 py-2 text-sm font-black text-white hover:translate-y-[-2px] transition">View Pool →</a>
             </div>
