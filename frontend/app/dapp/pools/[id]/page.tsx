@@ -181,12 +181,9 @@ export default function PoolDetailPage() {
   const canDeposit = pool.state === "active" && isParticipant && !hasPaid;
   const canSelect = pool.state === "active" && isAdmin;
   const canClaimPayout = isParticipant && Number(memberInfo?.pending_winner_payout || 0) > 0 && !memberInfo?.winner_payout_claimed;
+  const canClaimFinal = pool.state === "completed" && isParticipant && !memberInfo?.gacha_claimed;
   
-  // Show Claim Final to all active participants who haven't claimed, even if not completed (to show live yield)
-  const canShowClaimFinal = isParticipant && !memberInfo?.gacha_claimed;
-  
-  // Display the Gacha draw button if the user is Admin (validation happens inside handleDrawGacha)
-  const canDrawGacha = true;
+  const canDrawGacha = pool.state === "completed" && isAdmin && Number(pool.yieldCumulative) > 0;
 
   const statusLabel = pool.state === "active" ? "ACTIVE" : pool.state === "ready" ? "READY" : pool.state === "open" ? "OPEN" : "COMPLETED";
   const statusColor = pool.state === "active" ? "bg-[#e0f4ff] text-[#0284c7]" : pool.state === "completed" ? "bg-[#e8e1d9] text-[#a8a49a]" : "bg-[#ccfbf1] text-[#0d9488]";
@@ -275,9 +272,9 @@ export default function PoolDetailPage() {
                     <BarcodeStrip className="w-12 h-4" />
                     <span className="text-xs font-black uppercase tracking-[0.2em] text-[#333333]" style={LABEL_MONO}>yield</span>
                   </div>
-                  {(canShowClaimFinal || canDrawGacha) && (
+                  {(canClaimFinal || canDrawGacha) && (
                     <div className="inline-flex border-[3px] border-[#0a0a0a] shadow-[4px_4px_0_#0a0a0a] overflow-hidden">
-                      {canShowClaimFinal && (
+                      {canClaimFinal && (
                         <button onClick={handleClaimFinal} disabled={loading} className={`bg-[#f59e0b] px-4 py-2 text-xs font-black uppercase text-[#0a0a0a] transition hover:bg-[#d97706] disabled:opacity-50 ${canDrawGacha ? 'border-r-[3px] border-[#0a0a0a]' : ''}`}>
                           {loading ? "..." : `Claim Final (${coll} XLM + ${(Number(memberInfo?.yield_earned || 0) / 10_000_000).toFixed(6)})`}
                         </button>
