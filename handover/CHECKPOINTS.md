@@ -1,19 +1,20 @@
 # ✅ ARTEL — Checkpoints & Verifications
 
-## State Saat Ini (08 Juli 2026)
+## State Saat Ini (15 Juli 2026)
 
 | Item | Status | Detail |
 |------|--------|--------|
-| **Contract live** | ✅ Running | arisan `CBDJOVCV...`, vault `CAW77FMN...` |
-| **Contract tests** | ✅ 12/12 | arisan 9, factory 1, faucet 1, vault 1 |
+| **Contract live** | ✅ Running | arisan `CDKJUY6T...`, vault `CAW77FMN...` |
+| **Contract tests** | ✅ 11/11 | arisan 8, factory 1, faucet 1, vault 1 |
 | **TypeScript** | ✅ 0 errors | `tsc --noEmit` |
-| **ESLint** | ⚠️ 5 errors | Pre-existing dari Edwin (yield page: `any` types, unescaped entities) |
+| **ESLint** | ✅ 0 errors | Clean |
 | **WASM build** | ✅ Clean | Semua 4 kontrak ke-build |
 | **Frontend build** | ✅ Success | 18 routes compiled |
-| **E2E lifecycle** | ✅ Passed | Net-zero terbukti on-chain |
+| **E2E lifecycle** | ✅ Passed | Net-zero + Blend collateral terbukti on-chain |
 | **Secret security** | ✅ Neutralized | Old key account-merged (404) |
-| **History scrub** | 📌 Deferred | Cuma perlu kalau go public/mainnet |
-| **Blend integration** | 🚧 Framework only | Functions no-op, belum terhubung ke Blend asli |
+| **Blend integration** | ✅ Live | Collateral auto-supply, harvest yield, yield tracking |
+| **CI/CD** | ✅ Ready | GitHub Actions workflow (.github/workflows/ci.yml) |
+| **Mobile** | ✅ Basic | Hamburger menu |
 
 ---
 
@@ -97,7 +98,18 @@
 - [x] User-friendly error mapping
 - [x] YIELD navbar
 
-### Fase M: PRs
-- [x] PR #3: Audit + redeploy + E2E (MERGED)
-- [x] PR #5: Sync main + faiz fixes (OPEN)
-- [x] Push ke personal repo (Vercel testing)
+### Fase N: Blend Integration
+- [x] Blend Pool TestnetV2 discovered (`CCEBVDYM...`)
+- [x] `blend_supply()`/`blend_withdraw()` implemented via `env.invoke_contract`
+- [x] `authorize_as_current_contract` for token transfers
+- [x] Collateral auto-supply at join/create
+- [x] Blend withdrawal at claim_final + exit
+- [x] `harvest_blend_yield()` withdraw/re-supply dance
+- [x] Yield tracking via balance diff
+- [x] ESLint 4→0
+- [x] Demo pools seeded (3 pools)
+- [x] Audit fix: exit blend_withdraw + claim_final collateral-only
+- [x] Randomness upgrade
+- [x] Mobile hamburger
+- [x] CI/CD
+- [x] Gate: cargo 11/11 + tsc 0 + eslint 0

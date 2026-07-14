@@ -12,7 +12,7 @@ ArisanConfig {
     max_members, round_duration, slash_grace_period,
     min_reputation, admin_fee_bps (HARUS 0),
     early_points, mid_points, late_penalty,
-    blend_address (Address — untuk Blend integration, currently unused)
+    blend_address (Address — Blend pool TestnetV2)
 }
 
 Pool {
@@ -24,7 +24,7 @@ Pool {
     active_depositors_count,
     collateral_balance, pool_funds_balance, winner_payout_balance,
     yield_balance, collateral_yield_balance,
-    blend_btoken_balance (untuk Blend tracking, currently unused)
+    blend_btoken_balance (Blend tracking — live)
     paused: bool
 }
 
@@ -52,9 +52,8 @@ MemberInfo {
 | `claim_final(pool_id, member)` | Member | Completed | Tarik collateral + yield_earned |
 | `slash_collateral(pool_id, defaulter)` | Admin | Active | Sita collateral penunggak setelah grace period |
 | `distribute_collateral_yield(pool_id)` | Admin | Any | Bagi hasil yield collateral (50% member / 40% vault / 10% ops) |
-| `harvest_yield(pool_id, amount)` | Admin | Any | Admin deposit manual yield → 75% member / 25% gacha |
+| `harvest_blend_yield(pool_id)` | Admin | Any | Withdraw all Blend collateral, re-supply principal, track + distribute yield (75/25) |
 | `disburse_pool_yield_gacha(pool_id)` | Admin | Completed | Undi gacha jackpot (weighted ticket) |
-| `deposit_yield(pool_id, from, amount)` | Admin | Any | Topup yield balance |
 | `pause/unpause(pool_id)` | Admin | Any | Emergency pause |
 
 ### View Functions
@@ -66,9 +65,9 @@ MemberInfo {
 |---|-------|--------|--------|
 | 🔴 | **C2 (FIXED)**: `collateral_yield_balance` init 0 → kalau dipanggil `distribute_collateral_yield()` seluruh principal dianggep yield → insolvency | Fixed: seed `collateral_yield_balance = collateral_balance` di create_pool/join |
 | 🔴 | **C1 (NEUTRALIZED)**: Secret key deployer lama bocor di git history | Account-merge → akun 404. Secret worthless. Scrub history deferred |
-| 🟡 | **Randomness**: `derive_seed` pakai `ledger.sequence * timestamp` — admin bisa bias lewat timing | Acceptable for hackathon/testnet. Need VRF for mainnet |
-| 🟡 | **Blend no-op**: `blend_supply`/`blend_withdraw` kosong (nggak manggil Blend). `blend_btoken_balance` tracking internal tidak akurat | Blend belum live. Frontend hide Blend stats |
-| 🟡 | **blend_address default**: `CONTRACT_IDS.blend` = string kosong. Perlu address Blend Pool beneran waktu integrasi | — |
+| 🟡 | **Randomness**: `derive_seed` pakai `ledger.sequence * timestamp` — admin bisa bias lewat timing. Upgraded with multiplicative nonce hash. | Acceptable for testnet. Full VRF for mainnet. |
+| 🟢 | **Blend live**: `blend_supply`/`blend_withdraw` aktif — collateral auto-supply ke TestnetV2. `harvest_blend_yield` untuk harvest + yield tracking. | Done. |
+| 🟢 | **blend_address**: `CONTRACT_IDS.blend` = TestnetV2 pool. | Done. |
 
 ---
 
