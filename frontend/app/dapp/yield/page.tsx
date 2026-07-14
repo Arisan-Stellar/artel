@@ -6,10 +6,12 @@ import { HEADING_FONT, LABEL_MONO } from "@/components/dapp/ArtelHeader";
 import { artelClient, CONTRACT_IDS } from "@/lib/artel-sdk";
 import { scValToNative } from "@stellar/stellar-sdk";
 import { useWallet } from "@/hooks/WalletContext";
+import { useFreighterTx, scvU32 } from "@/hooks/useFreighterTx";
 
 export default function YieldPage() {
   const [blendStats, setBlendStats] = useState({ staked: "0.0", yield: "0.00", gacha: "0.00", monthly: "0.00" });
   const [memberYields, setMemberYields] = useState<{ address: string, poolId: number, vault: number, gacha: number, merata: number, contributed: number, collateral: number, isMock: boolean }[]>([]);
+  const { invokeContract } = useFreighterTx();
   const [searchQuery, setSearchQuery] = useState("");
   const [alertMsg, setAlertMsg] = useState<string | null>(null);
   const [adminPools, setAdminPools] = useState<number[]>([]);
@@ -280,25 +282,20 @@ export default function YieldPage() {
                       }
                       setLoadingSim(true);
                       try {
-                        const { Client } = await import("@/bindings/arisan-pool/src/index");
-                        const { NETWORK_PASSPHRASE } = await import("@/lib/artel-sdk");
-                        const poolClient = new Client({ rpcUrl: process.env.NEXT_PUBLIC_RPC_URL || "https://soroban-testnet.stellar.org:443", networkPassphrase: NETWORK_PASSPHRASE, contractId: CONTRACT_IDS.pool });
-                        
                         let successCount = 0;
                         for (const pid of adminPools) {
                           try {
-                            const tx = await poolClient.harvest_yield({ pool_id: pid, amount: BigInt(5000000) });
-                            const txResult = await tx.signAndSend();
-                            if (txResult) successCount++;
+                            const result = await invokeContract(CONTRACT_IDS.pool, "harvest_blend_yield", [scvU32(pid)]);
+                            if (result.success) successCount++;
                           } catch (e) {
-                            console.error(`Failed yield simul on pool ${pid}`, e);
+                            console.error(`Failed harvest on pool ${pid}`, e);
                           }
                         }
                         if(successCount > 0) { 
-                          setAlertMsg(`Harvest successful (0.5 XLM) from ${successCount} testnet pools!`); 
+                          setAlertMsg(`Blend yield harvested from ${successCount} pool(s)! Real distribution to members completed.`); 
                           fetchBlend(); 
                         } else {
-                          throw new Error("All simul failed");
+                          throw new Error("All harvests failed");
                         }
                       } catch (e) {
                         setAlertMsg("Transaction failed. Ensure you have enough testnet balance and you are the Admin.");
@@ -347,15 +344,12 @@ export default function YieldPage() {
                         return;
                       }
                       try {
-                        const { Client } = await import("@/bindings/arisan-pool/src/index");
-                        const { NETWORK_PASSPHRASE } = await import("@/lib/artel-sdk");
-                        const poolClient = new Client({ rpcUrl: process.env.NEXT_PUBLIC_RPC_URL || "https://soroban-testnet.stellar.org:443", networkPassphrase: NETWORK_PASSPHRASE, contractId: CONTRACT_IDS.pool });
-                        
-                        const tx = await poolClient.harvest_yield({ pool_id: myCard.poolId, amount: BigInt(5000000) });
-                        const txResult = await tx.signAndSend();
-                        if(txResult) { 
-                          setAlertMsg(`Harvest successful (0.5 XLM) from Pool ${myCard.poolId}! Real distribution to members has been completed.`); 
+                        const result = await invokeContract(CONTRACT_IDS.pool, "harvest_blend_yield", [scvU32(myCard.poolId)]);
+                        if(result.success) { 
+                          setAlertMsg(`Blend yield harvested from Pool ${myCard.poolId}! Real distribution to members completed.`); 
                           fetchBlend(); 
+                        } else {
+                          throw new Error("Harvest failed");
                         }
                       } catch (e) {
                         setAlertMsg(`Transaction failed. Ensure you have enough XLM balance and you are the Admin of Pool ${myCard.poolId}.`);

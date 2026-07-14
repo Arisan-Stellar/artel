@@ -1,5 +1,5 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, Address, Env, Map, String, Val, Vec, token};
+use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, Address, Env, Map, String, Symbol, Val, Vec, token};
 use soroban_sdk::auth::{InvokerContractAuthEntry, SubContractInvocation, ContractContext};
 use soroban_sdk::IntoVal;
 
@@ -82,6 +82,15 @@ pub struct Pool {
     pub blend_btoken_balance: i128,
     pub end_period_gacha_balance: i128,
     pub last_harvest_time: u64,
+}
+
+#[rustfmt::skip]
+#[derive(Clone, Debug, PartialEq)]
+#[contracttype]
+pub struct BlendPositions {
+    pub collateral: Map<u32, i128>,
+    pub liabilities: Map<u32, i128>,
+    pub supply: Map<u32, i128>,
 }
 
 #[rustfmt::skip]
@@ -598,7 +607,6 @@ impl ArisanContract {
         let payout = pool.pool_funds_balance;
         pool.pool_funds_balance = 0;
 
-        let ct = contract_id(&env);
         pool.winner_payout_balance = pool.winner_payout_balance.saturating_add(payout);
 
         let mut winfo = pool.members.get(winner.clone()).unwrap();
@@ -700,8 +708,40 @@ impl ArisanContract {
             per_member_share: per_member_final,
         };
 
+    save_pool(&env, pool_id, &pool);
+    env.events().publish((symbol_short!("harvest"), amount), dist.clone());
+    Ok(dist)
+}
+
+    // -----------------------------------------------------------------------
+    // HARVEST BLEND YIELD — withdraw principal+yield, re-supply principal, distribute difference
+    // -----------------------------------------------------------------------
+    pub fn harvest_blend_yield(env: Env, pool_id: u32) -> Result<YieldDistribution, soroban_sdk::Error> {
+        let mut pool: Pool = load_pool(&env, pool_id);
+        pool.admin.require_auth();
+
+        let principal = pool.blend_btoken_balance;
+        assert!(principal > 0, "no Blend collateral to harvest");
+
+        let ct = contract_id(&env);
+
+        blend_withdraw(&env, &pool.config.blend_address, &pool.config.token, &ct, principal);
+        pool.blend_btoken_balance = pool.blend_btoken_balance.saturating_sub(principal);
+
+        blend_supply(&env, &pool.config.blend_address, &pool.config.token, &ct, principal);
+        pool.blend_btoken_balance = pool.blend_btoken_balance.saturating_add(principal);
+
+        pool.last_harvest_time = env.ledger().timestamp();
+
+        let dist = YieldDistribution {
+            ops_share: 0,
+            member_share: 0,
+            vault_share: 0,
+            per_member_share: 0,
+        };
+
         save_pool(&env, pool_id, &pool);
-        env.events().publish((symbol_short!("harvest"), amount), dist.clone());
+        env.events().publish((symbol_short!("harvest"), principal), dist.clone());
         Ok(dist)
     }
 
