@@ -724,6 +724,12 @@ impl ArisanContract {
         assert!(principal > 0, "no Blend collateral to harvest");
 
         let ct = contract_id(&env);
+        let balance_args = Vec::from_array(&env, [ct.to_val()]);
+        let balance_before: i128 = env.invoke_contract(
+            &pool.config.token,
+            &symbol_short!("balance"),
+            balance_args,
+        );
 
         blend_withdraw(&env, &pool.config.blend_address, &pool.config.token, &ct, principal);
         pool.blend_btoken_balance = pool.blend_btoken_balance.saturating_sub(principal);
@@ -731,17 +737,53 @@ impl ArisanContract {
         blend_supply(&env, &pool.config.blend_address, &pool.config.token, &ct, principal);
         pool.blend_btoken_balance = pool.blend_btoken_balance.saturating_add(principal);
 
+        let balance_args2 = Vec::from_array(&env, [ct.to_val()]);
+        let balance_after: i128 = env.invoke_contract(
+            &pool.config.token,
+            &symbol_short!("balance"),
+            balance_args2,
+        );
+        let yield_amount = balance_after.saturating_sub(balance_before);
+
+        if yield_amount <= 0 {
+            let dist = YieldDistribution {
+                ops_share: 0, member_share: 0, vault_share: 0, per_member_share: 0,
+            };
+            pool.last_harvest_time = env.ledger().timestamp();
+            save_pool(&env, pool_id, &pool);
+            return Ok(dist);
+        }
+
+        let member_share = yield_amount.saturating_mul(75) / 100;
+        let gacha_share = yield_amount - member_share;
+        pool.yield_balance = pool.yield_balance.saturating_add(gacha_share);
+
+        let active_count = pool.member_list.iter()
+            .filter(|a| pool.members.get(a.clone()).map(|m| m.is_active).unwrap_or(false))
+            .count() as i128;
+        let per_member = if active_count > 0 { member_share / active_count } else { 0 };
+
+        for maddr in pool.member_list.iter() {
+            if let Some(mut mi) = pool.members.get(maddr.clone()) {
+                if mi.is_active {
+                    mi.yield_earned = mi.yield_earned.saturating_add(per_member);
+                    pool.members.set(maddr, mi);
+                }
+            }
+        }
+
+        pool.col_yield_dist = pool.col_yield_dist.saturating_add(yield_amount);
         pool.last_harvest_time = env.ledger().timestamp();
 
         let dist = YieldDistribution {
             ops_share: 0,
-            member_share: 0,
+            member_share,
             vault_share: 0,
-            per_member_share: 0,
+            per_member_share: per_member,
         };
 
         save_pool(&env, pool_id, &pool);
-        env.events().publish((symbol_short!("harvest"), principal), dist.clone());
+        env.events().publish((symbol_short!("harvest"), yield_amount), dist.clone());
         Ok(dist)
     }
 
