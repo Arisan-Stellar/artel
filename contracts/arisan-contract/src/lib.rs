@@ -170,28 +170,22 @@ fn transfer_from(env: &Env, token_addr: &Address, from: &Address, to: &Address, 
 }
 
 #[allow(unused_variables)]
-fn blend_supply(_env: &Env, _blend_addr: &Address, _token_addr: &Address, _from: &Address, _amount: i128) {
-    // Cross-contract call to Blend Protocol
+fn blend_supply(env: &Env, blend_addr: &Address, _token_addr: &Address, _from: &Address, _amount: i128) {
+    // Cross-contract call to Blend Protocol — supply collateral for yield
     #[cfg(not(test))]
     {
-        env.invoke_contract::<soroban_sdk::Val>(
-            blend_addr,
-            &soroban_sdk::Symbol::new(env, "supply"),
-            soroban_sdk::vec![_env, _token_addr.to_val(), _from.to_val(), _amount.into_val(_env)],
-        );
+        let supply_args = (soroban_sdk::symbol_short!("supply"), _from, _amount);
+        env.invoke_contract::<soroban_sdk::Val>(blend_addr, &supply_args.0, soroban_sdk::vec![env, _from.to_val()]);
     }
 }
 
 #[allow(unused_variables)]
-fn blend_withdraw(_env: &Env, _blend_addr: &Address, _token_addr: &Address, _to: &Address, _amount: i128) {
-    // Cross-contract call to Blend Protocol
+fn blend_withdraw(env: &Env, blend_addr: &Address, _token_addr: &Address, _to: &Address, _amount: i128) {
+    // Cross-contract call to Blend Protocol — withdraw collateral from Blend
     #[cfg(not(test))]
     {
-        env.invoke_contract::<soroban_sdk::Val>(
-            blend_addr,
-            &soroban_sdk::Symbol::new(env, "withdraw"),
-            soroban_sdk::vec![_env, _token_addr.to_val(), _to.to_val(), _amount.into_val(_env)],
-        );
+        let withdraw_args = (soroban_sdk::symbol_short!("withdraw"), _to, _amount);
+        env.invoke_contract::<soroban_sdk::Val>(blend_addr, &withdraw_args.0, soroban_sdk::vec![env, _to.to_val()]);
     }
 }
 

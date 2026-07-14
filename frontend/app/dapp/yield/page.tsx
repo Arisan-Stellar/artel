@@ -91,7 +91,8 @@ export default function YieldPage() {
         monthly: aggMonthly.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
       });
 
-      let yields = Array.from(memberAgg.values());
+      // eslint-disable-next-line prefer-const
+  const yields = Array.from(memberAgg.values());
       
       // Sort members: Put the connected user at the top, others below
       if (address) {

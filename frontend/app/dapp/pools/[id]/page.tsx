@@ -18,14 +18,17 @@ interface MemberView { deposited_this_round?: boolean; has_won?: boolean; pendin
 interface PoolView {
   id: string; name: string; state: string; deposit: number; max: number; members: number;
   cycle: number; totalCycles: number; cycleDays: number; apy: number;
-  yieldCumulative: number; yieldCollateral: number; yieldVault: number; blendStaked: number;
+  poolFunds: number;
+  yieldCumulative: number; yieldCollateral: number; yieldVault: number;
   participants: Participant[]; cycleWinners: CycleWinner[];
+  blendStaked: number; blendYield: number;
 }
 
 const FALLBACK_POOL: PoolView = {
   id: "", name: "Pool Not Found", state: "open",
   deposit: 0, max: 0, members: 0, cycle: 0, totalCycles: 0, cycleDays: 30, apy: 0,
-  yieldCumulative: 0, yieldCollateral: 0, yieldVault: 0, blendStaked: 0,
+  poolFunds: 0,
+  yieldCumulative: 0, yieldCollateral: 0, yieldVault: 0, blendStaked: 0, blendYield: 0,
   participants: [], cycleWinners: [],
 };
 
@@ -95,12 +98,14 @@ export default function PoolDetailPage() {
           members: Number(s.member_count || 0),
           cycle: cur,
           totalCycles: Number(s.total_rounds || 0),
-          cycleDays: 30,
+          cycleDays: Math.round(Number(c.round_duration || 2592000) / 86400),
           apy: 0,
+          poolFunds: Number(s.pool_funds_balance || 0) / 10_000_000,
           yieldCumulative: Number(s.yield_balance || 0) / 10_000_000,
           yieldCollateral: Number(s.collateral_yield_balance || 0) / 10_000_000,
           yieldVault: 0,
           blendStaked: Number(s.blend_btoken_balance || 0) / 10_000_000,
+          blendYield: 0,
           participants,
           cycleWinners,
         });
@@ -243,7 +248,7 @@ export default function PoolDetailPage() {
                   <StatBox label="DEPOSIT" value={`${pool.deposit} XLM`} bg="bg-[#e0f4ff]" />
                   <StatBox label="MEMBERS" value={`${pool.members}/${pool.max}`} bg="bg-[#ccfbf1]" Icon={Users} />
                   <StatBox label="CYCLE" value={`${displayedCycle}/${pool.totalCycles}`} bg="bg-[#fef9c3]" Icon={Clock} />
-                  <StatBox label="FUNDS" value={`${pool.deposit * pool.members} XLM`} bg="bg-[#e0f4ff]" Icon={DollarSign} />
+                  <StatBox label="FUNDS" value={`${pool.poolFunds} XLM`} bg="bg-[#e0f4ff]" Icon={DollarSign} />
                 </div>
                 {pool.state === "active" && <div className="mt-6"><div className="flex items-center justify-between mb-2"><span className="text-xs font-black uppercase tracking-[0.15em] text-[#333333]" style={LABEL_MONO}>Progress</span><span className="text-sm font-black" style={HEADING_FONT}>{progressPct}%</span></div><div className="h-4 w-full overflow-hidden border-[3px] border-[#0a0a0a] bg-[#e8e1d9]"><div className="h-full bg-[var(--color-sui)]" style={{ width: `${progressPct}%` }} /></div></div>}
               </div></div>
