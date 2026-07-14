@@ -251,7 +251,7 @@ export default function PoolDetailPage() {
               </div></div>
 
               <div className="flex flex-wrap gap-3">
-                {canJoin && <button onClick={handleJoin} disabled={loading} className={BTN_ORANGE + " px-8 disabled:opacity-50"}>{loading ? "..." : `Join · ${joinCost} XLM (${coll} collateral + ${pool.deposit} deposit)`}</button>}
+                {canJoin && <button onClick={handleJoin} disabled={loading} className={BTN_ORANGE + " px-8 disabled:opacity-50"}>{loading ? "..." : <><span className="sm:hidden">Join · {joinCost} XLM</span><span className="hidden sm:inline">Join · {joinCost} XLM ({coll} collateral + {pool.deposit} deposit)</span></>}</button>}
                 {canDeposit && <button onClick={handleDeposit} disabled={loading} className={BTN_PRIMARY + " px-8 disabled:opacity-50"}>{loading ? "..." : `Deposit ${pool.deposit} XLM`}</button>}
                 {canStart && <button onClick={handleStart} disabled={loading} className={BTN_SUCCESS + " px-6 disabled:opacity-50"}>{loading ? "..." : "Start Pool"}</button>}
                 {canSelect && <button onClick={handleSelect} disabled={loading} className={BTN_ORANGE + " px-6 disabled:opacity-50"}>{loading ? "..." : "Select Winner"}</button>}
@@ -320,7 +320,7 @@ export default function PoolDetailPage() {
                 <div className="space-y-2">
                   {pool.participants.map((p: Participant, i: number) => (
                     <div key={i} className={`flex items-center justify-between border-[3px] p-3 ${p.paid ? "border-[#0a0a0a] bg-[#ccfbf1]" : "border-[#0a0a0a] bg-[#f5f7fa]"}`}>
-                      <div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center border-[3px] border-[#0a0a0a] bg-[var(--color-sui)] text-[#0a0a0a] font-black text-sm" style={HEADING_FONT}>{i + 1}</div><div><p className="text-sm font-bold" style={LABEL_MONO}>{p.addr}</p><div className="flex items-center gap-2 mt-0.5">{p.paid && <span className="text-xs font-black text-[var(--color-teal)]" style={LABEL_MONO}><Check className="inline size-3" /> Paid</span>}{p.won && <span className="text-xs font-black text-[#f8672d]" style={LABEL_MONO}><Trophy className="inline size-3" /> Winner</span>}</div></div></div>
+                      <div className="flex items-center gap-3 min-w-0"><div className="flex h-10 w-10 shrink-0 items-center justify-center border-[3px] border-[#0a0a0a] bg-[var(--color-sui)] text-[#0a0a0a] font-black text-sm" style={HEADING_FONT}>{i + 1}</div><div className="min-w-0"><p className="text-sm font-bold truncate max-w-[120px] xs:max-w-[160px] sm:max-w-[200px]" style={LABEL_MONO}>{p.addr}</p><div className="flex items-center gap-2 mt-0.5">{p.paid && <span className="text-xs font-black text-[var(--color-teal)]" style={LABEL_MONO}><Check className="inline size-3" /> Paid</span>}{p.won && <span className="text-xs font-black text-[#f8672d]" style={LABEL_MONO}><Trophy className="inline size-3" /> Winner</span>}</div></div></div>
                       <div className="text-right text-xs"><span className="font-bold">{p.tickets}</span> <span className="text-[#333333]">tickets</span></div>
                     </div>
                   ))}
@@ -330,7 +330,7 @@ export default function PoolDetailPage() {
               {pool.cycleWinners?.length > 0 && <div className={CARD_CLASS}><GrainOverlay /><div className="relative z-20 p-6">
                 <div className="flex items-center justify-between mb-5"><BarcodeStrip className="w-12 h-4" /><span className="text-xs font-black uppercase tracking-[0.2em] text-[#333333]" style={LABEL_MONO}>winners</span></div>
                 <h2 className="mb-5 text-2xl font-black tracking-[-0.04em]" style={HEADING_FONT}>Cycle Winners</h2>
-                <div className="space-y-2">{pool.cycleWinners.map((w: CycleWinner) => <div key={w.cycle} className="flex items-center justify-between border-[3px] border-[#0a0a0a] bg-[#fef9c3] p-3"><div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center border-[3px] border-[#0a0a0a] bg-[#f8672d] text-[#0a0a0a] font-black text-sm" style={HEADING_FONT}>{w.cycle}</div><div><p className="text-sm font-bold" style={LABEL_MONO}>Cycle {w.cycle}</p><p className="text-xs font-semibold text-[#333333]">{w.addr}</p></div></div><Trophy className="size-4 text-[#f8672d]" /></div>)}</div>
+                <div className="space-y-2">{pool.cycleWinners.map((w: CycleWinner) => <div key={w.cycle} className="flex items-center justify-between border-[3px] border-[#0a0a0a] bg-[#fef9c3] p-3"><div className="flex items-center gap-3 min-w-0"><div className="flex h-10 w-10 shrink-0 items-center justify-center border-[3px] border-[#0a0a0a] bg-[#f8672d] text-[#0a0a0a] font-black text-sm" style={HEADING_FONT}>{w.cycle}</div><div className="min-w-0"><p className="text-sm font-bold" style={LABEL_MONO}>Cycle {w.cycle}</p><p className="text-xs font-semibold text-[#333333] truncate max-w-[140px] sm:max-w-[200px]">{w.addr}</p></div></div><Trophy className="size-4 text-[#f8672d]" /></div>)}</div>
               </div></div>}
             </div>
 

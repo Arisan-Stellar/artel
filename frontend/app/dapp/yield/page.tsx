@@ -266,12 +266,12 @@ export default function YieldPage() {
             {/* ACCUMULATED CARD */}
             {address && memberYields.filter(m => m.address === address).length > 0 && (
               <div className="col-span-1 md:col-span-2 border-[3px] border-[#0a0a0a] bg-[#0a0a0a] p-5 shadow-[6px_6px_0_#f59e0b] flex flex-col gap-4 mb-4">
-                <div className="flex items-center justify-between border-b-2 border-dashed border-[#555] pb-3">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b-2 border-dashed border-[#555] pb-3">
                   <div className="flex items-center gap-3">
                     <div className="size-8 rounded-full border-[2px] border-white bg-[#f59e0b] flex items-center justify-center font-black">🌟</div>
                     <div>
                       <p className="text-xs font-black uppercase tracking-wider text-[#ccc]" style={LABEL_MONO}>My Accumulated Yields</p>
-                      <p className="text-sm font-bold truncate max-w-[120px] text-white" title={address}>{address}</p>
+                      <p className="text-sm font-bold truncate max-w-[140px] sm:max-w-[200px] lg:max-w-none text-white" title={address}>{address}</p>
                     </div>
                   </div>
                   <button 
@@ -337,7 +337,7 @@ export default function YieldPage() {
                     <div className="size-8 rounded-full border-[2px] border-[#0a0a0a] bg-[#f59e0b] flex items-center justify-center font-black">⭐</div>
                     <div>
                       <p className="text-xs font-black uppercase tracking-wider text-[#555]" style={LABEL_MONO}>Pool {myCard.poolId}</p>
-                      <p className="text-sm font-bold truncate max-w-[120px]" title={address}>{address}</p>
+                      <p className="text-sm font-bold truncate max-w-[140px] sm:max-w-[200px] lg:max-w-none" title={address}>{address}</p>
                     </div>
                   </div>
                   <button 

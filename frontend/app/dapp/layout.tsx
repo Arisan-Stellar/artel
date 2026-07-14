@@ -82,7 +82,9 @@ function HeaderInner() {
         )}
       </div>
       {menuOpen && (
-        <div className="absolute top-full left-0 right-0 border-b-[3px] border-[#0a0a0a] bg-[var(--color-artel)] p-4 shadow-[0_6px_0_#0a0a0a] lg:hidden z-50">
+        <>
+          <div className="fixed inset-0 bg-black/40 z-40 lg:hidden" onClick={() => setMenuOpen(false)} />
+          <div className="absolute top-full left-0 right-0 border-b-[3px] border-[#0a0a0a] bg-[var(--color-artel)] p-4 shadow-[0_6px_0_#0a0a0a] lg:hidden z-50">
           <div className="flex flex-col gap-1">
             {NAV.map((item) => (
               <Link key={item.href} href={item.href} onClick={() => setMenuOpen(false)}
@@ -93,7 +95,8 @@ function HeaderInner() {
               >{item.label}</Link>
             ))}
           </div>
-        </div>
+          </div>
+          </>
       )}
     </header>
   );
