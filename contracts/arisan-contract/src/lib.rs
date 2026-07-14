@@ -1,5 +1,5 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, Address, Env, Map, String, Symbol, Val, Vec, token};
+use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, Address, Env, Map, String, Val, Vec, token};
 use soroban_sdk::auth::{InvokerContractAuthEntry, SubContractInvocation, ContractContext};
 use soroban_sdk::IntoVal;
 
@@ -148,10 +148,9 @@ fn required_collateral(config: &ArisanConfig) -> i128 {
         / 10000
 }
 
-// SECURITY (pseudo-random, NOT manipulation-proof): the seed is derived from public
-// ledger data (sequence * timestamp) plus an instance counter, and the admin controls
-// select_winner timing, so winner selection is biasable. A VRF or commit-reveal scheme
-// is required for mainnet-grade fairness.
+// SECURITY (pseudo-random, NOT manipulation-proof): the seed mixes ledger data,
+// counter, and a multiplicative nonce. Still biasable by admin timing.
+// Full VRF or commit-reveal required for mainnet-grade fairness.
 fn derive_seed(env: &Env, salt: u64) -> u64 {
     let ledger = env.ledger();
     (ledger.sequence() as u64)
@@ -998,6 +997,14 @@ mod test {
         pub fn submit(_env: Env, _from: Address, _spender: Address, _to: Address, _requests: Vec<BlendRequest>) {}
     }
 
+    #[contract]
+    pub struct MockVault;
+
+    #[contractimpl]
+    impl MockVault {
+        pub fn register_participant(_env: Env, _arisan: Address, _participant: Address, _tickets: u32) {}
+    }
+
     fn deploy_token(env: &Env, admin: &Address) -> Address {
         let sac = env.register_stellar_asset_contract_v2(admin.clone());
         sac.address()
@@ -1010,7 +1017,7 @@ mod test {
 
     fn setup(env: &Env, members_count: u32) -> (Address, Address, ArisanConfig) {
         let admin = Address::generate(env);
-        let vault = Address::generate(env);
+        let vault = env.register(MockVault, ());
         let token_addr = deploy_token(env, &admin);
 
         let config = ArisanConfig {
