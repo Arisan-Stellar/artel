@@ -43,7 +43,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     try {
       if (type === "freighter") {
         const mod = await import("@stellar/freighter-api");
-        if (!(await mod.isConnected())?.isConnected) throw new Error("Freighter not detected");
         await mod.requestAccess();
         const { address: addr } = await mod.getAddress();
         if (addr) { setAddress(addr); setWalletType("freighter"); }
