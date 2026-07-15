@@ -1,124 +1,120 @@
 # 🛠️ ARTEL — Tech Stack
 
-## Overview
+## Layer 1: Blockchain
 
-| Layer | Technology | Version | Why Chosen |
-|-------|-----------|---------|------------|
-| **Blockchain** | Stellar + Soroban | SDK 22.0.0 | Hackathon requirement (APAC Stellar) |
-| **Smart Contracts** | Rust | `wasm32v1-none` target | Type-safe, performant, no garbage collector |
-| **Frontend** | Next.js 16 + React 19 | 16.2.9 | SSR/SSG for landing, CSR for dApp |
-| **Language** | TypeScript | 5.x | Type safety, better DX |
-| **Styling** | Tailwind CSS 4 | utility-first | Rapid UI, design system consistency |
-| **Animation** | GSAP + Lenis | — | Scroll-triggered animations, smooth scroll |
-| **3D (Landing)** | Three.js | — | Interactive globe on landing page |
-| **State Mgmt** | Zustand + TanStack Query | — | Lightweight state + server state |
-| **Wallet** | Freighter, Albedo, xBull, Lobstr | — | Multi-wallet support via WalletContext |
-| **i18n** | Custom (EN + ID) | — | English + Bahasa Indonesia |
-| **Testing** | Vitest (FE) + cargo test (contracts) | — | 12/12 contract tests, vitest suites |
-| **Deploy** | Vercel | — | Auto-deploy from Git |
+| Item | Value |
+|------|-------|
+| **Network** | Stellar Testnet |
+| **RPC** | `https://soroban-testnet.stellar.org` |
+| **Horizon** | `https://horizon-testnet.stellar.org` |
+| **Passphrase** | `Test SDF Network ; September 2015` |
+| **Smart Contract Platform** | Soroban |
+| **SDK** | `soroban-sdk 22.0.0` |
+| **Target** | `wasm32v1-none` |
 
----
+## Layer 2: Smart Contracts
 
-## Smart Contract Stack (Rust)
+| Contract | Rust | Lines | Fungsi |
+|----------|------|-------|--------|
+| arisan-contract | Rust + soroban-sdk 22.0.0 | 1311 | Core ROSCA pool (17 functions) |
+| yield-vault | Rust + soroban-sdk 22.0.0 | 242 | Gacha vault (7 functions) |
+| artel-factory | Rust + soroban-sdk 22.0.0 | 113 | Pool registry (3 functions) |
+| artel-faucet | Rust + soroban-sdk 22.0.0 | 66 | Testnet faucet (3 functions) |
 
+### Build Tools
+- `cargo test` — run all tests
+- `stellar contract build` — build wasm
+- Rust target: `wasm32v1-none`
+
+## Layer 3: Frontend
+
+| Library | Version | Digunakan Untuk |
+|---------|---------|-----------------|
+| **Next.js** | 16.2.9 | Framework |
+| **React** | 19.2.4 | UI library |
+| **TypeScript** | 5 | Type safety |
+| **Tailwind CSS** | 4 | Styling |
+| **Zustand** | 5 | State management |
+| **TanStack React Query** | 5 | Data fetching |
+| **GSAP** | 3.15 | Animasi landing page |
+| **Lenis** | 1.3 | Smooth scroll |
+| **SplitType** | 0.3 | Text splitting |
+
+### Wallet Integrations
+
+| Wallet | Package | API |
+|--------|---------|-----|
+| **Freighter** | `@stellar/freighter-api` v4 | `requestAccess()`, `getAddress()`, `signTransaction()` |
+| **Albedo** | `@albedo-link/intent` | `publicKey()`, `signTransaction()` |
+| **xBull** | `@creit.tech/xbull-wallet-connect` | `connect()`, `signTransaction()` |
+| **Lobstr** | `@lobstrco/signer-extension-api` | `getPublicKey()`, `signTransaction()` |
+
+### Stellar
+
+| Package | Version | Digunakan Untuk |
+|---------|---------|-----------------|
+| `@stellar/stellar-sdk` | 14 | Transaction building, XDR parsing |
+| `@creit.tech/stellar-wallets-kit` | 1 | Multi-wallet connector |
+
+### Testing
+
+| Tool | Version | Digunakan Untuk |
+|------|---------|-----------------|
+| **Playwright** | 1.61 | E2E browser tests (203 tests) |
+| **Vitest** | 4.1 | Unit tests |
+| **Testing Library** | 16.3 | React component tests |
+
+### i18n
+
+| File | Isi |
+|------|-----|
+| `lib/i18n/types.ts` | Type definitions for all keys |
+| `lib/i18n/en.ts` | English dictionary |
+| `lib/i18n/id.ts` | Bahasa Indonesia dictionary |
+| `lib/i18n/LocaleProvider.tsx` | React context provider |
+| `lib/i18n/dictionaries.ts` | Dictionary registry |
+
+## Layer 4: Infrastructure
+
+| Item | Value |
+|------|-------|
+| **Hosting** | Vercel (root dir = `frontend/`) |
+| **CI/CD** | GitHub Actions (`.github/workflows/ci.yml`) |
+| **Node version** | 22 |
+| **Demo video** | `demo-video/` folder |
+
+## Contract Auth Patterns
+
+### Blend cross-contract auth (works)
+```rust
+env.authorize_as_current_contract(Vec::from_array(env, [
+    InvokerContractAuthEntry::Contract(SubContractInvocation {
+        context: ContractContext {
+            contract: blend,
+            fn_name: symbol_short!("submit"),
+            args,
+        },
+        sub_invocations: Vec::new(env),
+    }),
+    // ... token transfer auth entry
+]));
 ```
-soroban-sdk = "22.0.0"
-Target: wasm32v1-none (Soroban WASM)
-Optimization: opt-level = "z" (minimize WASM size)
+
+### Vault cross-contract auth (works — implemented 15 Juli)
+```rust
+env.authorize_as_current_contract(Vec::from_array(env, [
+    InvokerContractAuthEntry::Contract(SubContractInvocation {
+        context: ContractContext {
+            contract: vault,
+            fn_name: Symbol::new(&env, "register_participant"),
+            args,
+        },
+        sub_invocations: Vec::new(env),
+    }),
+]));
 ```
 
-4 kontrak:
-| Contract | File | Lines | Tests |
-|----------|------|-------|-------|
-| `arisan-contract` | `contracts/arisan-contract/src/lib.rs` | ~1240 | 9/9 ✅ |
-| `yield-vault` | `contracts/yield-vault/src/lib.rs` | ~242 | 1/1 ✅ |
-| `artel-factory` | `contracts/artel-factory/src/lib.rs` | ~107 | 1/1 ✅ (DEPRECATED) |
-| `artel-faucet` | `contracts/artel-faucet/src/lib.rs` | ~70 | 1/1 ✅ (unused — app uses friendbot) |
-
----
-
-## Frontend Stack
-
-### Key Dependencies
-```json
-{
-  "next": "^16.2.9",
-  "react": "^19.2.4",
-  "@stellar/stellar-sdk": "^14.5.0",
-  "@stellar/freighter-api": "latest",
-  "tailwindcss": "^4",
-  "gsap": "latest",
-  "three": "latest",
-  "@tanstack/react-query": "latest",
-  "zustand": "latest"
-}
-```
-
-### Dev Tools
-```json
-{
-  "typescript": "^5",
-  "eslint": "^9",
-  "vitest": "latest",
-  "playwright": "latest"  // (dev only — not in production build)
-}
-```
-
----
-
-## Network Configuration
-
-Semua jalan di **Stellar Testnet**:
-
-| Config | Value |
-|--------|-------|
-| Network | `testnet` |
-| RPC URL | `https://soroban-testnet.stellar.org` |
-| Horizon URL | `https://horizon-testnet.stellar.org` |
-| Passphrase | `Test SDF Network ; September 2015` |
-| XLM Token (SAC) | `CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC` |
-
----
-
-## Toolchain
-
-| Tool | Purpose |
-|------|---------|
-| `stellar` CLI | Deploy contract, invoke functions, key management |
-| `cargo` | Rust build + test |
-| `npm` | Frontend package management |
-| `git` | Version control (branch `faiz`) |
-| `Vercel` | Frontend deployment |
-| `Python3` | Utility scripts (sed-like replacements) |
-
----
-
-## ⚠️ Catatan Penting
-
-- **Node.js:** terinstall versi `v26.2.0` (lokal). Vercel default mungkin beda — pastikan kompatibel.
-- **package-lock.json:** jangan diubah sembarangan. Regenerate cuma kalau ada `ERESOLVE` / `npm ci` error.
-- **Playwright:** terinstall sebagai dev dependency TAPI TIDAK dipakai di production build. Kalau `npm ci` gagal karena transitive deps (`@emnapi/runtime`, `bufferutil`), jalankan `npm install` untuk sync lockfile.
-- **wasm32 target:** wajib `rustup target add wasm32v1-none` sebelum build kontrak.
-
----
-
-## Blend Protocol Stack (Added July 2026)
-
-| Component | Details |
-|-----------|---------|
-| **Blend Pool** | TestnetV2: `CCEBVDYM...` |
-| **Pool Factory** | `CDV6RX4C...` |
-| **Assets** | XLM, USDC, wETH, wBTC |
-| **Cross-contract** | `env.invoke_contract` + `authorize_as_current_contract` |
-| **Auth pattern** | Flat `InvokerContractAuthEntry` untuk authorize sub-contract calls |
-| **Yield tracking** | `invoke_contract::<i128>` on token `balance()` before/after withdraw+resupply |
-
-### Key dependencies (unchanged from base)
-```json
-{
-  "next": "^16.2.9",
-  "react": "^19.2.4",
-  "@stellar/stellar-sdk": "^14.5.0",
-  "soroban-sdk": "22.0.0"
-}
+### Token balance in contract context
+```rust
+let balance: i128 = env.invoke_contract(&token, &symbol_short!("balance"), vec![addr]);
 ```

@@ -1,118 +1,95 @@
-# 🚀 ARTEL — Deployment
+# 🚀 ARTEL — Deployment Guide
 
-## Active Contracts (Stellar Testnet)
+## Active Contracts (Testnet)
 
-| Contract | Address | Admin |
-|----------|---------|-------|
-| **arisan** | `CDKJUY6TFUDAN2YTNN5Y5TFELWZPMVPTRKWAVYHD4TWVJNZ4LTQTKNRT` | `GAAA6ZHL...` |
-| **vault** | `CAW77FMNIHKNCPU6WTFCA7VF42WS3JU5DUXBKZWELGARJ5E6DMYNFW5V` | `GAAA6ZHL...` |
-| **XLM** | `CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC` | SAC native |
-| **Blend Pool** | `CCEBVDYM32YNYCVNRXQKDFFPISJJCV557CDZEIRBEE4NCV4KHPQ44HGF` | TestnetV2 (read-only) |
-
-> **Catatan:** `pool_id` = angka urut (0, 1, 2...), BUKAN contract address.
-> Semua pool hidup dalam 1 kontrak arisan.
-
----
+| Contract | Address | Keterangan |
+|----------|---------|------------|
+| **arisan** | `CBVWEPXBBCPAK2A3NCCKIP6ORYB32VH3OKRQBUWNSMONQC5KEORPEQSN` | Vault wire deployed |
+| **vault** | `CA65HU7KGU4EU4DGQYEQCCUBHAHFW6BOGCOKVRIIYGOOSYLSDH5WLIR7` | Cross-contract auth ready |
+| **XLM SAC** | `CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC` | Native asset |
+| **Blend Pool** | `CCEBVDYM32YNYCVNRXQKDFFPISJJCV557CDZEIRBEE4NCV4KHPQ44HGF` | TestnetV2 |
 
 ## Admin Key
 
-| | Value |
-|---|---|
-| **Pubkey** | `GAAA6ZHLYVEK57LIWBOPODU3VPGZXKO6GMQMR2JPEPDHX4R374NN2MTJ` |
-| **Secret** | `SBEVWHZU...` — HANYA di `frontend/.env.local` (gitignored) |
-| **Keystore** | `~/.config/stellar/identity/artel-admin-v2.toml` |
-
-> ⚠️ **Secret ini dipakai buat deploy contract + admin functions. JANGAN dishare ke siapapun. JANGAN masukin ke Vercel.**
-
----
-
-## Environment Variables
-
-### Local Development (`frontend/.env.local` — gitignored)
-
-```env
-NEXT_PUBLIC_NETWORK=testnet
-NEXT_PUBLIC_RPC_URL=https://soroban-testnet.stellar.org
-NEXT_PUBLIC_HORIZON_URL=https://horizon-testnet.stellar.org
-NEXT_PUBLIC_NETWORK_PASSPHRASE=Test SDF Network ; September 2015
-NEXT_PUBLIC_CONTRACT_POOL=CDKJUY6TFUDAN2YTNN5Y5TFELWZPMVPTRKWAVYHD4TWVJNZ4LTQTKNRT
-NEXT_PUBLIC_CONTRACT_VAULT=CAW77FMNIHKNCPU6WTFCA7VF42WS3JU5DUXBKZWELGARJ5E6DMYNFW5V
-NEXT_PUBLIC_CONTRACT_BLEND=CCEBVDYM32YNYCVNRXQKDFFPISJJCV557CDZEIRBEE4NCV4KHPQ44HGF
-NEXT_PUBLIC_XLM_CONTRACT=CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC
-DEPLOYER_SECRET=SBEVWHZUVZQLVCMW2C3ES7CO22CUJK4TAZQQBNIQFDNORVFW3BAN42GW
+```bash
+# Cek pubkey
+stellar keys address artel-admin-v2
+# → GAAA6ZHLYVEK57LIWBOPODU3VPGZXKO6GMQMR2JPEPDHX4R374NN2MTJ
 ```
 
-### Vercel (production — set di Vercel Dashboard)
+Secret ada di `frontend/.env.local` — **gitignored, jangan commit!**
 
-```env
-NEXT_PUBLIC_NETWORK=testnet
-NEXT_PUBLIC_RPC_URL=https://soroban-testnet.stellar.org
-NEXT_PUBLIC_HORIZON_URL=https://horizon-testnet.stellar.org
-NEXT_PUBLIC_NETWORK_PASSPHRASE=Test SDF Network ; September 2015
-NEXT_PUBLIC_CONTRACT_POOL=CDKJUY6TFUDAN2YTNN5Y5TFELWZPMVPTRKWAVYHD4TWVJNZ4LTQTKNRT
-NEXT_PUBLIC_CONTRACT_VAULT=CAW77FMNIHKNCPU6WTFCA7VF42WS3JU5DUXBKZWELGARJ5E6DMYNFW5V
-NEXT_PUBLIC_CONTRACT_BLEND=CCEBVDYM32YNYCVNRXQKDFFPISJJCV557CDZEIRBEE4NCV4KHPQ44HGF
-NEXT_PUBLIC_XLM_CONTRACT=CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC
-```
-
-> **HANYA `NEXT_PUBLIC_*` vars — jangan ada `DEPLOYER_SECRET` di Vercel!**
-
-### Vercel Settings
-- **Root Directory:** `frontend`
-- **Framework:** Next.js
-- **Build Command:** `npm run build` (default)
-- **Install Command:** `npm ci` (default)
-
----
-
-## Deploy Flow (kalau ganti kontrak)
+## Deploy Flow
 
 ```bash
 # 1. Build
 cd contracts
-cargo test                           # pastikan semua pass
-stellar contract build               # build wasm
+cargo test
+stellar contract build
 
-# 2. Deploy arisan
-ARISAN=$(stellar contract deploy \
-  --wasm target/wasm32v1-none/release/arisan_contract.wasm \
-  --source artel-admin-v2 --network testnet | tail -1)
-
-# 3. Deploy vault
+# 2. Deploy vault dulu
 VAULT=$(stellar contract deploy \
   --wasm target/wasm32v1-none/release/yield_vault.wasm \
-  --source artel-admin-v2 --network testnet | tail -1)
+  --source artel-admin-v2 \
+  --network testnet)
 
-# 4. Init vault
+# 3. Init vault
 stellar contract invoke --id $VAULT --source artel-admin-v2 --network testnet \
-  -- init --admin GAAA6ZHLYVEK57LIWBOPODU3VPGZXKO6GMQMR2JPEPDHX4R374NN2MTJ
-
+  -- init --admin $(stellar keys address artel-admin-v2)
 stellar contract invoke --id $VAULT --source artel-admin-v2 --network testnet \
   -- set_token --token_addr CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC
 
-# 5. Update config
-# Frontend:
-#   - frontend/.env.local (NEXT_PUBLIC_CONTRACT_POOL, NEXT_PUBLIC_CONTRACT_VAULT)
-#   - frontend/.env.example
-#   - frontend/lib/artel-sdk.ts (fallback addresses)
-#   - frontend/bindings/arisan-pool/src/index.ts (contractId)
-# Docs:
-#   - All update-faiz/*.md, handover/*
+# 4. Deploy arisan
+ARISAN=$(stellar contract deploy \
+  --wasm target/wasm32v1-none/release/arisan_contract.wasm \
+  --source artel-admin-v2 \
+  --network testnet)
+
+# 5. Update .env.local, .env.example, artel-sdk.ts dengan address baru
 ```
 
----
+## Vercel Setup
 
-## Repo Setup
+### Root Directory: `frontend/`
 
-### Origin (org repo)
+### Environment Variables
+
+Tempelin ini di Vercel Dashboard → Settings → Environment Variables:
+
 ```
-git remote -v
-# origin  https://github.com/Arisan-Stellar/artel.git
-# Branch: faiz (kerja) → PR ke main
+NEXT_PUBLIC_NETWORK=testnet
+NEXT_PUBLIC_RPC_URL=https://soroban-testnet.stellar.org
+NEXT_PUBLIC_HORIZON_URL=https://horizon-testnet.stellar.org
+NEXT_PUBLIC_NETWORK_PASSPHRASE=Test SDF Network ; September 2015
+NEXT_PUBLIC_CONTRACT_POOL=CBVWEPXBBCPAK2A3NCCKIP6ORYB32VH3OKRQBUWNSMONQC5KEORPEQSN
+NEXT_PUBLIC_CONTRACT_VAULT=CA65HU7KGU4EU4DGQYEQCCUBHAHFW6BOGCOKVRIIYGOOSYLSDH5WLIR7
+NEXT_PUBLIC_XLM_CONTRACT=CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC
+NEXT_PUBLIC_CONTRACT_BLEND=CCEBVDYM32YNYCVNRXQKDFFPISJJCV557CDZEIRBEE4NCV4KHPQ44HGF
 ```
 
-### Personal (testing Vercel)
-```
-git remote add personal https://github.com/Faiz-abdurrachman/artel.git
-git push personal faiz:main    # Push ke personal untuk Vercel deploy
+Semua optional — fallback udah di `artel-sdk.ts`. Tapi recommended diset semua.
+
+## Pool Demo (Seeded)
+
+| Pool | Name | State | Detail |
+|------|------|-------|--------|
+| 0 | E2E Blend | Active (round 2) | 3 member, 75 XLM collateral |
+| 1 | Micro Arisan | Active | 3 member, 37.5 XLM collateral |
+| 2 | Premium Circle | Pending | 3 member (↑), 750 XLM collateral |
+| 3 | (new) | Created by user | - |
+
+## Testing
+
+```bash
+# Contracts
+cd contracts && cargo test && stellar contract build
+
+# Frontend type + lint
+cd frontend && npx tsc --noEmit && npx eslint . --quiet
+
+# E2E (butuh dev server running)
+cd frontend && npx playwright test --project=chromium
+
+# Full E2E with Freighter (extension required)
+cd frontend && npx playwright test --project=freighter
 ```

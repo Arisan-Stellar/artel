@@ -1,161 +1,142 @@
 # 📁 ARTEL — Codebase Guide
 
-## Folder Structure
+## Root Directory Structure
 
 ```
-artel/
-├── contracts/                    # Rust smart contracts
-│   ├── arisan-contract/          # ⭐ Core ROSCA pool (1240 lines)
-│   ├── yield-vault/              # Annual gacha vault (242 lines)
-│   ├── artel-factory/            # Pool registry (DEPRECATED — not used)
-│   └── artel-faucet/             # Testnet faucet (unused — app uses friendbot)
-│
-├── frontend/                     # Next.js 16 frontend
-│   ├── app/
-│   │   ├── api/                  # API proxy routes → Soroban RPC
-│   │   │   ├── contract-state/   # View function proxy (get_state, get_config, etc.)
-│   │   │   ├── faucet/           # Friendbot proxy
-│   │   │   ├── pools/            # Pool count endpoint
-│   │   │   └── rpc/              # RPC proxy (UNUSED — dead route)
-│   │   ├── dapp/                 # dApp routes (authenticated area)
-│   │   │   ├── pools/            # Pool listing + [id] detail (most complex page)
-│   │   │   ├── create/           # Create new pool
-│   │   │   ├── dashboard/        # User dashboard
-│   │   │   ├── leaderboard/      # Reputation ranking
-│   │   │   ├── profile/          # User profile
-│   │   │   ├── yield/            # Yield dashboard (Edwin's PR)
-│   │   │   ├── gacha/            # Gacha page
-│   │   │   ├── simulator/        # Interactive ROSCA simulator
-│   │   │   ├── faq/              # FAQ page
-│   │   │   ├── faucet/           # Faucet claim page
-│   │   │   └── layout.tsx        # ⭐ dApp shell (header, nav, wallet connect)
-│   │   ├── layout.tsx             # Root layout (metadata, fonts, favicon)
-│   │   ├── page.tsx               # ⭐ Landing page (7-section storytelling)
-│   │   └── globals.css            # Design system (colors, tabs, cards, badges)
-│   ├── components/
-│   │   ├── dapp/                  # dApp-specific components (ArtelHeader, ArtelFooter, WalletCard, AnimatedBadge)
-│   │   ├── brand/                 # Brand assets (ArtelLogo, ArtelMark)
-│   │   ├── scenes/                # Landing page animated scenes
-│   │   ├── sections/              # Landing page sections (Retakan, Tempaan, etc.)
-│   │   ├── globe/                 # Three.js ArtelGlobe component
-│   │   ├── ui/                    # Shared UI (MiniNav, faucet button, etc.)
-│   │   ├── fx/                    # Effects (Grain, CustomCursor, Preloader)
-│   │   └── motion/                # SmoothScroll
-│   ├── hooks/
-│   │   ├── useFreighterTx.ts      # ⭐ Contract invocation hook (tx signing, error handling)
-│   │   └── WalletContext.tsx       # ⭐ Multi-wallet provider (connect/disconnect)
-│   ├── lib/
-│   │   ├── artel-sdk.ts           # ⭐ Contract addresses, network config, ArtelClient class
-│   │   ├── poolMath.ts            # Collateral calculation, join cost, contribution math
-│   │   └── i18n/                  # EN + ID translations
-│   ├── bindings/                  # Auto-generated contract TypeScript bindings
-│   ├── .env.local                 # ⚠️ SECRET (gitignored) — deployer key + contract addresses
-│   ├── .env.example               # Template — committed (no secrets)
-│   └── next.config.ts             # Next.js config
-│
-├── handover/                      # 📖 Dokumentasi lengkap (folder ini)
-├── update-faiz/                   # Dokumentasi lama (historical — read but don't edit)
-├── .omo/                          # AI agent internal state (plans, session data — gitignored)
-└── README.md                      # Project front page
+/
+├── contracts/          # Rust smart contracts (Soroban)
+├── frontend/           # Next.js application (Vercel root)
+├── e2e/                # Playwright E2E tests
+├── handover/           # Documentation
+├── demo-video/         # Demo video scripts
+├── .github/            # CI/CD workflows
+└── update-faiz/        # (obsolete) old docs
 ```
 
----
+## Contracts Structure
 
-## Key Files (⭐ wajib dipahami)
+```
+contracts/
+├── Cargo.toml              # Workspace
+├── Makefile                # Build shortcuts
+├── arisan-contract/
+│   ├── Cargo.toml
+│   └── src/
+│       └── lib.rs          # ~1311 lines — All pool logic
+├── yield-vault/
+│   ├── Cargo.toml
+│   └── src/
+│       └── lib.rs          # ~242 lines — Gacha vault
+├── artel-factory/
+│   ├── Cargo.toml
+│   └── src/
+│       └── lib.rs          # ~113 lines — Pool registry (unused)
+└── artel-faucet/
+    ├── Cargo.toml
+    └── src/
+        └── lib.rs          # ~66 lines — Testnet faucet
+```
 
-| File | Why Important |
-|------|---------------|
-| `contracts/arisan-contract/src/lib.rs` | Seluruh logic ROSCA — pool lifecycle, fair ROSCA, collateral, yield/gacha |
-| `frontend/app/dapp/pools/[id]/page.tsx` | Halaman paling kompleks — pool detail, buttons, participants, yield stats |
-| `frontend/hooks/useFreighterTx.ts` | Semua interaksi contract via browser wallet — signing, error mapping |
-| `frontend/hooks/WalletContext.tsx` | Wallet state management — connect/disconnect multi-wallet |
-| `frontend/lib/artel-sdk.ts` | Contract addresses (env vars + fallback), network config |
-| `frontend/app/dapp/layout.tsx` | dApp shell — header, navbar, wallet button, footer |
+### Key Contracts Sections
 
----
+**arisan-contract/src/lib.rs:**
+| Lines | Content |
+|-------|---------|
+| 1-166 | Imports, types, constants, helper functions |
+| 197-259 | `blend_supply()` / `blend_withdraw()` helpers |
+| 280-367 | `create_pool()` — admin creates + joins auto |
+| 369-427 | `join()` — member joins with all-in |
+| 433-464 | `exit()` — leave before pool starts |
+| 469-483 | `start_pool()` — admin starts |
+| 488-530 | `contribute()` — pay monthly dues |
+| 535-573 | `slash_collateral()` — admin slashes defaulter |
+| 578-660 | `select_winner()` — random weighted selection |
+| 662-760 | `claim_winner_payout()` + `claim_final()` |
+| 762-830 | `harvest_blend_yield()` — harvest from Blend |
+| 832-960 | Query functions (get_state, get_member_info...) |
+| 961-1311 | Tests (8 test functions) |
 
-## Important Rules (Do's & Don'ts)
+## Frontend Structure
+
+```
+frontend/
+├── app/
+│   ├── layout.tsx          # Root layout (landing page shell)
+│   ├── page.tsx            # Landing page (7 sections)
+│   ├── globals.css         # Tailwind + custom CSS
+│   ├── dapp/
+│   │   ├── layout.tsx      # dApp shell (header + footer + LocaleProvider)
+│   │   ├── pools/page.tsx  # Pool listing
+│   │   ├── pools/[id]/page.tsx  # Pool detail
+│   │   ├── create/page.tsx # Create pool form
+│   │   ├── yield/page.tsx  # Yield dashboard
+│   │   ├── simulator/page.tsx  # ROSCA simulator
+│   │   ├── leaderboard/page.tsx  # Leaderboard
+│   │   ├── profile/page.tsx # User profile
+│   │   ├── faq/page.tsx    # FAQ
+│   │   ├── faucet/page.tsx # Testnet faucet
+│   │   ├── dashboard/page.tsx  # Dashboard
+│   │   ├── gacha/page.tsx  # Gacha info
+│   │   └── api/            # API routes (contract-state, pools)
+│   └── components/
+│       ├── dapp/           # Shared dApp components
+│       ├── sections/       # Landing page sections
+│       ├── ui/             # Shared UI (Button, GhostWord)
+│       └── motion/         # Animation hooks
+├── hooks/
+│   ├── WalletContext.tsx   # Multi-wallet provider
+│   └── useFreighterTx.ts   # Contract invocation helper
+├── lib/
+│   ├── artel-sdk.ts        # Contract client + addresses
+│   ├── poolMath.ts         # Collateral calculations
+│   └── i18n/               # Internationalization
+│       ├── types.ts        # Dict type definitions
+│       ├── en.ts           # English dictionary
+│       ├── id.ts           # Indonesian dictionary
+│       ├── LocaleProvider.tsx  # Context provider
+│       └── dictionaries.ts # Registry
+├── bindings/               # Auto-generated contract bindings
+├── tests/                   # Vitest test files
+├── e2e/                     # Playwright tests (8 files)
+├── public/                  # Static assets
+├── playwright.config.ts     # Playwright configuration
+└── package.json
+```
+
+## E2E Test Structure
+
+```
+e2e/
+├── navigation.spec.ts  # Nav links, hamburger (8 tests)
+├── pools.spec.ts       # Pool listing, filters (5 tests)
+├── pool-detail.spec.ts # Stats, participants (5 tests)
+├── yield.spec.ts       # Yield page (6 tests)
+├── create-pool.spec.ts # Form, wallet guard (2 tests)
+├── i18n.spec.ts        # EN↔ID toggle (9 tests)
+├── responsive.spec.ts  # 4 viewports × 4 pages (24 tests)
+└── full-flow.spec.ts   # Wallet connect flow (3 tests, needs Freighter)
+```
+
+## Coding Rules (WAJIB)
 
 ### ✅ DO
-- Kerja di branch `faiz`, PR ke `main`
-- Pakai `NEXT_PUBLIC_*` env vars — fallback selalu ada di `artel-sdk.ts`
-- Jalanin `cargo test` + `tsc --noEmit` + `eslint .` sebelum setiap commit
-- Commit pesan pakai conventional commits (`fix:`, `feat:`, `docs:`, `chore:`, `merge:`)
-- Kalau deploy kontrak baru → update `.env.local`, `.env.example`, `artel-sdk.ts`, bindings, docs
+- Kerja di branch `faiz`
+- Config via `NEXT_PUBLIC_*` env vars — fallback di `artel-sdk.ts`
+- Jalanin `cargo test` + `tsc --noEmit` + `eslint .` SEBELUM commit
+- Commit: `fix:`, `feat:`, `docs:`, `chore:`, `merge:`, `ci:`
+- Setiap deploy kontrak baru → update `.env.local`, `.env.example`, `artel-sdk.ts`
+- Komit dulu, baru push setelah di-review
 
 ### ❌ DON'T
-- JANGAN commit `.env.local` (ada deployer secret di dalamnya)
-- JANGAN pakai `as any`, `@ts-ignore`
-- JANGAN ubah `package-lock.json` sembarangan (cuma kalau `npm ci` gagal → `npm install`)
+- JANGAN commit `.env.local` (ada `DEPLOYER_SECRET`)
 - JANGAN push ke `main` langsung — selalu lewat PR
+- JANGAN merge ke `faiz` tanpa izin
+- JANGAN pakai `as any` / `@ts-ignore`
+- JANGAN ubah `package-lock.json` sembarangan
 - JANGAN hardcode contract address — pakai `CONTRACT_IDS` dari `artel-sdk.ts`
+- JANGAN push sebelum di-review
 
 ### 🔒 Security
-- Deployer secret (`DEPLOYER_SECRET`) HANYA di `.env.local` (gitignored)
-- JANGAN taruh `DEPLOYER_SECRET` di Vercel — app gak butuh (user sign via wallet)
-- Semua `NEXT_PUBLIC_*` vars aman buat client — hanya info publik
-
----
-
-## Config Flow
-
-```
-.env.local (gitignored, local only)
-    ↓ override
-.env.example (committed, template)
-    ↓ override
-artel-sdk.ts default fallback (last resort — commited)
-```
-
-Di Vercel: set `NEXT_PUBLIC_*` di dashboard → override semua di atas.
-
----
-
-## Verifikasi Cepat
-
-```bash
-# Setelah perubahan kontrak
-cd contracts && cargo test && stellar contract build
-
-# Setelah perubahan frontend
-cd frontend && npx tsc --noEmit && npx eslint . --quiet && npm run build
-```
-
----
-
-## 🆕 New Files & Patterns (Added July 2026)
-
-### New key files
-| File | Purpose |
-|------|---------|
-| `.github/workflows/ci.yml` | GitHub Actions: cargo test + tsc + eslint on PR |
-| `.omo/plans/*.md` | AI agent work plans (historical) |
-
-### Blend Auth Pattern
-```rust
-// Di blend_supply() — authorize kontrak untuk panggil Blend.submit + token.transfer
-env.authorize_as_current_contract(Vec::from_array(env, [
-    InvokerContractAuthEntry::Contract(SubContractInvocation {
-        context: ContractContext { contract: blend, fn_name: "submit", args },
-        sub_invocations: vec![/* token.transfer */],
-    }),
-]));
-let _: Val = env.invoke_contract(blend_addr, &symbol_short!("submit"), args);
-```
-
-### Cross-contract Token Balance Query
-```rust
-// invoke_contract::<i128> works where TokenClient doesn't
-let balance: i128 = env.invoke_contract(&token, &symbol_short!("balance"), vec![addr]);
-```
-
-### Updated Rules
-- ✅ `Symbol::new()` untuk function names > 9 chars (symbol_short max 9)
-- ✅ `InvokerContractAuthEntry` harus flat (bukan nested) untuk Blend
-- ✅ JANGAN pake `TokenClient` di cross-contract context — pake `invoke_contract::<T>`
-- ✅ Setiap deploy kontrak baru → update `.env.local`, `.env.example`, `artel-sdk.ts`, docs
-
-### Test Patterns
-- `MockBlendPool` — mock Blend contract untuk unit test
-- `MockVault` — mock Vault contract untuk future vault wire testing
-- `env.mock_all_auths()` — skip auth checks di tests
+- Admin key `artel-admin-v2` — pubkey `GAAA6ZHL...`, secret di `.env.local` (gitignored)
+- Deploy kontrak: `stellar contract deploy --wasm ... --source artel-admin-v2 --network testnet`
+- User signing via wallet extension — aplikasi TIDAK pegang secret key user

@@ -3,180 +3,171 @@
 ## System Overview
 
 ```
-┌──────────────────────────────────────────────────────┐
-│                 BROWSER (User)                        │
-│  ┌──────────┐  ┌──────────┐  ┌───────────────────┐  │
-│  │ Freighter │  │  Albedo  │  │  xBull / Lobstr   │  │
-│  │ Extension │  │  (Web)   │  │  Extension/Mobile │  │
-│  └────┬─────┘  └────┬─────┘  └────────┬──────────┘  │
-│       │              │                 │              │
-│  ┌────┴──────────────┴─────────────────┴──────────┐  │
-│  │          WalletContext (unified interface)       │  │
-│  └──────────────────────┬──────────────────────────┘  │
-│                         │                             │
-│  ┌──────────────────────┴──────────────────────────┐  │
-│  │    Next.js 16 Frontend (React 19 + TypeScript)   │  │
-│  │    /app (landing page + dApp routes)             │  │
-│  │    /api (proxy routes to Stellar RPC)            │  │
-│  │    /components (reusable UI)                     │  │
-│  │    /hooks (useFreighterTx, WalletContext)        │  │
-│  │    /lib (artel-sdk, poolMath)                    │  │
-│  └──────────────────────┬──────────────────────────┘  │
-└─────────────────────────┼─────────────────────────────┘
-                          │ HTTP / RPC
-┌─────────────────────────┼─────────────────────────────┐
-│              STELLAR TESTNET                           │
-│                         │                              │
-│  ┌──────────────────────┴──────────────────────────┐  │
-│  │  Soroban Smart Contracts (Rust → WASM)           │  │
-│  │                                                   │  │
-│  │  ┌─────────────────────┐  ┌────────────────────┐ │  │
-│  │  │  arisan-contract     │  │  yield-vault        │ │  │
-│  │  │  Core ROSCA pool     │  │  40% yield vault    │ │  │
-│  │  │  ~1240 lines         │  │  ~242 lines         │ │  │
-│  │  │                      │  │                     │ │  │
-│  │  │  create_pool()       │  │  init()             │ │  │
-│  │  │  join()              │  │  set_token()        │ │  │
-│  │  │  start_pool()        │  │  register_participant│ │  │
-│  │  │  contribute()        │  │  annual_gacha()     │ │  │
-│  │  │  select_winner()      │  │  receive_yield()    │ │  │
-│  │  │  claim_winner_payout()│  │  get_state()        │ │  │
-│  │  │  claim_final()       │  │                     │ │  │
-│  │  │  harvest_yield()     │  └────────────────────┘ │  │
-│  │  │  distribute_collateral_yield()                 │  │
-│  │  │  slash_collateral()  │                         │  │
-│  │  │  pause/unpause()     │  ┌────────────────────┐ │  │
-│  │  └─────────────────────┘  │  artel-factory      │ │  │
-│  │                            │  (DEPRECATED)      │ │  │
-│  │  ┌─────────────────────┐  └────────────────────┘ │  │
-│  │  │  Blend Protocol      │                         │  │
-│  │  │  (planned, not live) │  ┌────────────────────┐ │  │
-│  │  └─────────────────────┘  │  artel-faucet       │ │  │
-│  │                            │  (unused)           │ │  │
-│  └────────────────────────────┴────────────────────┘ │  │
-└───────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                     FRONTEND (Next.js 16)                         │
+│                                                                   │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌────────────────────┐   │
+│  │  Pools   │ │ Simulator│ │Leaderboard│ │  Gacha / FAQ / ... │   │
+│  └────┬─────┘ └────┬─────┘ └────┬─────┘ └────────┬───────────┘   │
+│       │            │            │                 │               │
+│  ┌────┴────────────┴────────────┴─────────────────┴────────┐     │
+│  │              Wallet Connector (4 wallet support)         │     │
+│  │        Freighter · Albedo · xBull · Lobstr              │     │
+│  └──────────────────────────┬──────────────────────────────┘     │
+└─────────────────────────────┼────────────────────────────────────┘
+                              │
+┌─────────────────────────────┼────────────────────────────────────┐
+│                    SOROBAN SMART CONTRACTS                        │
+│                                                                   │
+│  ┌──────────────────┐    ┌────────────────────────────┐          │
+│  │  arisan-contract  │    │      yield-vault            │          │
+│  │  Core ROSCA pool  │    │  25% gacha yield vault     │          │
+│  │  17 functions     │    │  7 functions                │          │
+│  │  ~1311 lines      │    │  ~242 lines                 │          │
+│  └────────┬─────────┘    └─────────────┬──────────────┘          │
+│           │                            │                          │
+│  ┌────────┴────────────────────────────┴─────────────────────┐   │
+│  │       artel-factory (pool registry) · artel-faucet        │   │
+│  └───────────────────────────────────────────────────────────┘   │
+│                                                                   │
+│  ┌───────────────────┐  ┌──────────┐  ┌──────────────────────┐   │
+│  │  Stellar DEX       │  │  Blend   │  │  XLM Token (SAC)     │   │
+│  │  (future)          │  │  Lending │  │  Native Asset        │   │
+│  └───────────────────┘  └──────────┘  └──────────────────────┘   │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
----
-
-## Pool Lifecycle State Machine
+## Contract Model: 1 Contract → Many Pools
 
 ```
-┌──────────┐   start_pool    ┌──────────┐   select_winner   ┌───────────┐
-│ PENDING  │ ──────────────► │  ACTIVE  │ ────────────────► │ COMPLETED │
-│ (open)   │                 │          │  (N kali, sampai  │           │
-│          │                 │  ┌─────┐ │   current_round>  │           │
-│  join()  │                 │  │loop │ │   total_rounds)   │           │
-│  exit()  │                 │  └─────┘ │                   │           │
-└──────────┘                 └──────────┘                   └───────────┘
-                                 │                                │
-                          contribute()                  claim_winner_payout()
-                          slash_collateral()            claim_final()
-                          deposit_yield()               disburse_pool_yield_gacha()
-                          harvest_yield()
+arisan-contract (1 instance)
+│
+├── pool_id: 0  →  "E2E Blend"        (Completed)
+├── pool_id: 1  →  "Micro Arisan"     (Active)
+├── pool_id: 2  →  "Premium Circle"   (Pending)
+│
+└── pool_id: N  →  (new pools)
 ```
 
-### State Transitions
-| From | Action | To | Who |
-|------|--------|----|-----|
-| Pending | `start_pool()` | Active | Admin only |
-| Active | `select_winner()` → `current_round > total_rounds` | Completed | Admin only |
-| Active | `select_winner()` → masih ada ronde | Active | Admin only |
+`pool_id` = angka urut (`0, 1, 2...`), **bukan** contract address.
+URL `/dapp/pools/1` = pool ke-2 di contract arisan yang sama.
 
----
+## Blend Protocol Integration
 
-## Contract Architecture: 1 Contract → Many Pools
-
-Model **Sui-style**: semua pool hidup dalam SATU kontrak arisan, bukan deploy kontrak baru per pool.
+### How it works
 
 ```
-Storage Key: (Symbol("pool"), pool_id: u32) → Pool struct
+1. JOIN / CREATE POOL
+   ├── User pays collateral + contribution to arisan contract
+   └── arisan contract submits collateral to Blend Pool
+       → env.invoke_contract(Blend, "submit", SupplyCollateral)
+       → blend_btoken_balance increases
+
+2. DURING POOL (yield accumulates)
+   ├── Collateral sits in Blend, earning yield
+   └── No action needed — yield accrues automatically
+
+3. HARVEST YIELD (admin action)
+   ├── withdraw ALL collateral from Blend
+   ├── measure yield (balance check before/after)
+   ├── re-supply principal to Blend
+   └── distribute: 75% to members, 25% to gacha vault
+
+4. CLAIM FINAL (end of pool)
+   ├── withdraw collateral from Blend
+   └── transfer to member
 ```
 
-Ini lebih hemat gas daripada model "1 pool = 1 contract".
-
-### `pool_id` vs Contract Address
-- `pool_id` = **angka urut** (0, 1, 2, ...) di dalam kontrak arisan
-- URL `/dapp/pools/1` = pool ke-2 (index dari 0)
-- **BUKAN** contract address. Contract address selalu `C...` format
-
----
-
-## Data Flow: Frontend ↔ Contract
+### Yield Distribution
 
 ```
-User click "Deposit" → useFreighterTx.invokeContract()
-    → TransactionBuilder → simulate → Freighter sign → sendTransaction
-    → waitForTx (polling) → result.hash → refreshAll() → re-fetch state
+Blend Yield
+    │
+    ├── 75% → member yield_earned (distributed equally)
+    │
+    └── 25% → yield_vault gacha balance (annual jackpot)
 ```
 
-### API Routes (Next.js)
-| Route | Purpose | Risk |
-|-------|---------|------|
-| `/api/pools` | `get_pool_count` | Read-only simulation |
-| `/api/contract-state` | View functions: state, config, member info, leaderboard | Read-only, fn allowlist |
-| `/api/faucet` | Friendbot proxy | Rate-limited by Friendbot |
-| `/api/rpc` | Soroban RPC proxy (UNUSED) | Method allowlist |
+### Key Technical Details
 
-### Wallet Flow
-```
-WalletContext.connect() → getPubKey(per walletType) → set address
-useFreighterTx.invokeContract():
-  1. Get pubKey from WalletContext
-  2. rpc.getAccount(pubKey) — build transaction
-  3. rpc.simulateTransaction(tx) — validate
-  4. rpc.assembleTransaction(tx, sim) — prepare
-  5. signXdr(per walletType) — user signs via extension
-  6. rpc.sendTransaction(signed) — submit to chain
-  7. waitForTx(hash) — poll until SUCCESS
-```
+| Detail | Value |
+|--------|-------|
+| **Blend API** | `submit(from, spender, to, requests)` |
+| **SupplyCollateral** | `request_type: 2` |
+| **WithdrawCollateral** | `request_type: 3` |
+| **Blend Pool** | `CCEBVDYM...` (TestnetV2) |
+| **Collateral only** to Blend | Contributions NOT supplied (only collateral) |
+| **Yield tracking** | Balance diff via `invoke_contract::<i128>` |
+| **Auth pattern** | `authorize_as_current_contract` |
 
----
+### Fungsi yang terlibat
 
-## Blend Protocol Integration (Status)
+| Fungsi | Di kontrak | Aksi Blend |
+|--------|-----------|------------|
+| `create_pool()` | arisan | `blend_supply()` — admin collateral |
+| `join()` | arisan | `blend_supply()` — member collateral |
+| `exit()` | arisan | `blend_withdraw()` — refund collateral |
+| `harvest_blend_yield()` | arisan | `blend_withdraw()` + `blend_supply()` |
+| `claim_final()` | arisan | `blend_withdraw()` — return collateral |
 
-**Status: BELUM LIVE — planned, framework exists.**
+## Vault Wire (Implemented 15 Juli)
 
-```
-arisan-contract ──blend_supply()──► Blend Pool Contract (not connected)
-                 ──blend_withdraw()► (no-op — empty function body)
-
-harvest_yield(): admin manually deposits yield → distributes 75% members / 25% gacha
-```
-
-Fungsi `blend_supply` & `blend_withdraw` saat ini **no-op** (kondisional dengan Blend belum terdeploy).
-Integrasi penuh butuh:
-1. Blend Pool address yang valid di testnet
-2. Import Blend SDK (`@blend-capital/blend-contract-sdk`)
-3. Implementasi `submit(SupplyCollateral)` / `submit(WithdrawCollateral)` di kontrak
-4. Testing end-to-end
-
----
-
-## 🆕 Blend Protocol Integration (Live)
+### Flow
 
 ```
-arisan-contract ──blend_supply()──► Blend Pool (TestnetV2)
-                 ──blend_withdraw()► CCEBVDYM...
-                 ──harvest_blend_yield()──► balance_before/after tracking
-
-JOIN/CREATE:  member → ARTEL → blend_supply(submit(SupplyCollateral)) → Blend
-CLAIM_FINAL:  ARTEL ← blend_withdraw(submit(WithdrawCollateral)) ← Blend
-HARVEST:      withdraw 7.5B → re-supply 7.5B → yield = balance_after - balance_before
+contribute() / create_pool() / join()
+    │
+    ├── 1. Transfer contribution (standard)
+    │
+    └── 2. Auto-register ke gacha vault
+        ├── authorize_as_current_contract(vault.register_participant)
+        ├── compute_tickets(&info) — based on payment timing
+        └── invoke_contract(vault, "register_participant", args)
 ```
 
 ### Auth Pattern
-```
-User sign → ARTEL.invoke_contract(Blend, "submit", args)
-  → authorize_as_current_contract([Blend.submit, XLM.transfer])
-  → Blend checks spender.require_auth() → ARTEL in auth tree ✓
+
+```rust
+// Di arisan contract (contribute())
+env.authorize_as_current_contract(vec![
+    InvokerContractAuthEntry::Contract(SubContractInvocation {
+        context: ContractContext {
+            contract: vault,
+            fn_name: Symbol::new(&env, "register_participant"),
+            args: vec![arisan.to_val(), member.to_val(), tickets.into_val(&env)],
+        },
+        sub_invocations: vec![],
+    }),
+]);
+
+// Di vault contract
+pub fn register_participant(env, arisan, participant, tickets) {
+    arisan.require_auth();  // ← contract-level auth, not admin
+    // ... store participant
+}
 ```
 
-### New Functions
-| Function | Location | Purpose |
-|----------|----------|---------|
-| `blend_supply()` | lib.rs | Supply collateral to Blend via submit |
-| `blend_withdraw()` | lib.rs | Withdraw collateral from Blend |
-| `harvest_blend_yield()` | lib.rs | Withdraw+resupply, track yield, distribute 75/25 |
-| `BlendRequest` | lib.rs | Struct matching Blend's Request ABI |
-| `BlendPositions` | lib.rs | Struct matching Blend's Positions (for future get_positions) |
+## i18n Architecture
+
+```
+LocaleProvider (React Context)
+    │
+    ├── locale: "en" | "id"
+    ├── dict: Dict (typed translations)
+    ├── setLocale()
+    └── toggle()
+    
+Setiap halaman dApp:
+    const { dapp } = useDict();
+    <h1>{dapp.pools.title}</h1>
+```
+
+## State Management
+
+```
+WalletContext (React Context)
+    ├── address: string | null
+    ├── walletType: WalletType
+    ├── connect(type) → requests wallet access
+    └── disconnect() → clears state
+```

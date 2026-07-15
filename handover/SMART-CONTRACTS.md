@@ -1,101 +1,146 @@
-# 🔧 ARTEL — Smart Contracts
+# 📜 ARTEL — Smart Contracts Documentation
 
-## 1. arisan-contract (`contracts/arisan-contract/src/lib.rs`)
+## Contract 1: arisan-contract (Core)
 
-Kontrak utama — seluruh lifecycle ROSCA.
+**File:** `contracts/arisan-contract/src/lib.rs` (~1311 lines)
+**Deployed:** `CBVWEPXBBCPAK2A3NCCKIP6ORYB32VH3OKRQBUWNSMONQC5KEORPEQSN`
 
-### Structs
+### Types
 
 ```rust
-ArisanConfig {
-    name, contribution_amount, collateral_ratio_bps, token,
-    max_members, round_duration, slash_grace_period,
-    min_reputation, admin_fee_bps (HARUS 0),
-    early_points, mid_points, late_penalty,
-    blend_address (Address — Blend pool TestnetV2)
+enum ArisanState { Pending, Active, Completed }
+
+struct ArisanConfig {
+    name: String, contribution_amount: i128, collateral_ratio_bps: u32,
+    token: Address, max_members: u32, round_duration: u64,
+    slash_grace_period: u64, min_reputation: u32, admin_fee_bps: u32,
+    early_points: u32, mid_points: u32, late_penalty: i32, blend_address: Address,
 }
 
-Pool {
-    config, admin, yield_vault,
-    state (Pending/Active/Completed),
-    current_round, total_rounds,
-    members: Map<Address, MemberInfo>,
-    member_list: Vec<Address>,
-    active_depositors_count,
-    collateral_balance, pool_funds_balance, winner_payout_balance,
-    yield_balance, collateral_yield_balance,
-    blend_btoken_balance (Blend tracking — live)
-    paused: bool
+struct MemberInfo {
+    address: Address, collateral_amount: i128, total_contributed: i128,
+    missed_payments: u32, has_won: bool, is_active: bool,
+    joined_at: u64, last_deposit_round: u32, deposited_this_round: bool,
+    early_payments: u32, mid_payments: u32, late_payments: u32,
+    total_points: i32, current_streak: u32, yield_earned: i128,
+    gacha_claimed: bool, pending_winner_payout: i128, winner_payout_claimed: bool,
 }
 
-MemberInfo {
-    address, collateral_amount, total_contributed,
-    has_won, is_active, deposited_this_round,
-    pending_winner_payout, winner_payout_claimed,
-    gacha_claimed, yield_earned,
-    early_payments, mid_payments, late_payments,
-    total_points, current_streak
+struct Pool {
+    config: ArisanConfig, admin: Address, yield_vault: Address,
+    state: ArisanState, current_round: u32, total_rounds: u32,
+    round_start_time: u64, pool_start_time: u64, is_full: bool,
+    members: Map<Address, MemberInfo>, member_list: Vec<Address>,
+    active_depositors_count: u32, round_winners: Map<u32, Address>,
+    collateral_balance: i128, pool_funds_balance: i128,
+    winner_payout_balance: i128, yield_balance: i128,
+    collateral_yield_balance: i128, col_yield_dist: i128,
+    paused: bool, blend_btoken_balance: i128,
+    end_period_gacha_balance: i128, last_harvest_time: u64,
 }
 ```
 
-### Fungsi Publik
+### Functions
 
-| Function | Who | State Req | Description |
-|----------|-----|-----------|-------------|
-| `create_pool(admin, vault, config)` | Admin | — | Buat pool + auto-join admin (all-in: collateral + cycle-1 iuran). Return pool_id |
-| `join(pool_id, member)` | Member | Pending | Join pool, bayar collateral + iuran cycle-1 |
-| `exit(pool_id, member)` | Member | Pending | Keluar sebelum pool start, refund collateral + deposit |
-| `start_pool(pool_id)` | Admin | Pending+full | Mulai pool → Active, active_depositors_count set ke member_list.len() |
-| `contribute(pool_id, member)` | Member | Active | Bayar iuran ronde ini. Points based on timing (early/mid/late) |
-| `select_winner(pool_id)` | Admin | Active | Pilih pemenang weighted random. Payout ke escrow. Advance round. Completion check |
-| `claim_winner_payout(pool_id, member)` | Winner | Any | Tarik escrow payout (pull-based) |
-| `claim_final(pool_id, member)` | Member | Completed | Tarik collateral + yield_earned |
-| `slash_collateral(pool_id, defaulter)` | Admin | Active | Sita collateral penunggak setelah grace period |
-| `distribute_collateral_yield(pool_id)` | Admin | Any | Bagi hasil yield collateral (50% member / 40% vault / 10% ops) |
-| `harvest_blend_yield(pool_id)` | Admin | Any | Withdraw all Blend collateral, re-supply principal, track + distribute yield (75/25) |
-| `disburse_pool_yield_gacha(pool_id)` | Admin | Completed | Undi gacha jackpot (weighted ticket) |
-| `pause/unpause(pool_id)` | Admin | Any | Emergency pause |
+| Fungsi | Auth | Description |
+|--------|------|-------------|
+| `create_pool(admin, vault, config)` | admin | Buat pool + admin auto-join |
+| `join(pool_id, member)` | member | Join dengan all-in payment |
+| `exit(pool_id, member)` | member | Keluar sebelum pool mulai |
+| `start_pool(pool_id)` | admin | Mulai pool (harus full) |
+| `contribute(pool_id, member)` | member | Bayar iuran bulanan |
+| `slash_collateral(pool_id, defaulter)` | admin | Hukum member mangkir |
+| `select_winner(pool_id)` | admin | Pilih pemenang acak |
+| `claim_winner_payout(pool_id, winner)` | winner | Klaim hadiah menang |
+| `claim_final(pool_id, member)` | member | Klaim collateral + yield akhir |
+| `disburse_pool_yield_gacha(pool_id)` | admin | Distribusi gacha pool |
+| `harvest_blend_yield(pool_id)` | admin | Panen yield dari Blend |
+| `pause(pool_id)` | admin | Pause pool (darurat) |
+| `unpause(pool_id)` | admin | Unpause pool |
+| `get_state(pool_id)` | public | Baca state pool |
+| `get_member_info(pool_id, member)` | public | Baca info member |
+| `get_admin(pool_id)` | public | Baca admin address |
+| `get_config(pool_id)` | public | Baca konfigurasi pool |
+| `get_leaderboard(pool_id)` | public | Baca peringkat member |
+| `get_tickets(pool_id, member)` | public | Baca tiket member |
+| `get_round_winner(pool_id, round)` | public | Baca pemenang ronde |
+| `get_pool_count()` | public | Baca jumlah pool |
 
-### View Functions
-`get_state`, `get_config`, `get_member_info`, `get_tickets`, `get_leaderboard`, `get_admin`, `get_round_winner`, `get_pool_count`
+### Key Business Logic
 
-### Known Issues / Limitations
+#### Fair ROSCA Net-Zero
+```rust
+// Contoh: pool 3 member, 10 XLM/cycle, 125% collateral
+// All-in Join: 12.5 XLM (collateral) + 10 XLM (cycle-1) = 22.5 XLM
+// Total contribution per member = 3 cycles × 10 XLM = 30 XLM
+// Total paid total = 12.5 + 30 = 42.5 XLM
+// Final claim = 12.5 (collateral) + 30 (payout received as winner) = 42.5 XLM
+// Net: 0 ✅
+```
 
-| # | Issue | Impact | Status |
-|---|-------|--------|--------|
-| 🔴 | **C2 (FIXED)**: `collateral_yield_balance` init 0 → kalau dipanggil `distribute_collateral_yield()` seluruh principal dianggep yield → insolvency | Fixed: seed `collateral_yield_balance = collateral_balance` di create_pool/join |
-| 🔴 | **C1 (NEUTRALIZED)**: Secret key deployer lama bocor di git history | Account-merge → akun 404. Secret worthless. Scrub history deferred |
-| 🟡 | **Randomness**: `derive_seed` pakai `ledger.sequence * timestamp` — admin bisa bias lewat timing. Upgraded with multiplicative nonce hash. | Acceptable for testnet. Full VRF for mainnet. |
-| 🟢 | **Blend live**: `blend_supply`/`blend_withdraw` aktif — collateral auto-supply ke TestnetV2. `harvest_blend_yield` untuk harvest + yield tracking. | Done. |
-| 🟢 | **blend_address**: `CONTRACT_IDS.blend` = TestnetV2 pool. | Done. |
+#### Compute Tickets
+```rust
+fn compute_tickets(info: &MemberInfo) -> u32 {
+    let base = info.early_payments * 3 + info.mid_payments;
+    let multiplier = match info.current_streak {
+        0..=2   => 100,
+        3..=4   => 110,
+        5..=7   => 150,
+        8..=10  => 180,
+        _       => 200, // 2x multiplier for 11+ streak
+    };
+    1 + (base * multiplier / 100)
+}
+```
 
----
+#### Randomness
+```rust
+fn derive_seed(env: &Env, salt: u64) -> u64 {
+    (ledger.sequence() as u64)
+        .wrapping_mul(ledger.timestamp())
+        .wrapping_add(salt)
+        .wrapping_add(nonce)  // multiplicative nonce for entropy
+}
+```
 
-## 2. yield-vault (`contracts/yield-vault/src/lib.rs`)
+## Contract 2: yield-vault (Gacha)
 
-Kontrak vault untuk yield 40% yang diundi via gacha tahunan.
+**File:** `contracts/yield-vault/src/lib.rs` (~242 lines)
+**Deployed:** `CA65HU7KGU4EU4DGQYEQCCUBHAHFW6BOGCOKVRIIYGOOSYLSDH5WLIR7`
 
-### Fungsi
-| Function | Description |
-|----------|-------------|
-| `init(admin)` | Inisialisasi vault (one-time) |
-| `set_token(token_addr)` | Set token address (admin only) |
-| `receive_yield(from, amount)` | Terima transfer yield dari arisan contract |
-| `register_participant(arisan, participant, tickets)` | Daftarkan peserta gacha (admin-gated) |
-| `annual_gacha()` | Undi gacha tahunan (admin only, June-July window) |
-| `reset_for_new_year()` | Reset buat tahun baru (admin only) |
-| `get_state()` | (total_vaulted, total_distributed, last_timestamp, locked) |
+### Functions
 
-### Known Issues
-- **Date check**: pakai kalkulasi day-of-year yang nggak akurat di tahun kabisat
-- **Randomness**: sama lemah dengan arisan (admin timing)
+| Fungsi | Auth | Description |
+|--------|------|-------------|
+| `init(admin)` | - | Init vault dengan admin |
+| `set_token(token)` | admin | Set token address |
+| `receive_yield(from, amount)` | from | Terima yield dari arisan |
+| `register_participant(arisan, participant, tickets)` | arisan | Daftar peserta gacha |
+| `annual_gacha()` | admin | Eksekusi undian tahunan |
+| `reset_for_new_year()` | admin | Reset gacha lock |
+| `get_state()` | public | Baca state vault |
+| `get_participant_count()` | public | Baca jumlah peserta |
 
----
+### Gacha Logic
 
-## 3. artel-factory (DEPRECATED)
+```rust
+pub fn annual_gacha(env: Env) -> Vec<GachaWinner> {
+    // 1. Check annual window (June-July)
+    // 2. Weighted random selection
+    // 3. Prize tiers: Grand (50%), Runner (15% × 2), Consolation (20% / rest)
+    // 4. Transfer prizes
+    // 5. Lock for the year
+}
+```
 
-Tidak dipakai dalam arsitektur "1 contract → many pools". Tersimpan untuk referensi.
+## Contract 3: artel-factory
 
-## 4. artel-faucet (Unused)
+**File:** `contracts/artel-factory/src/lib.rs` (~113 lines)
+**Status:** ⚠️ Tidak digunakan — arsitektur 1 contract → many pools
+**Address:** N/A (not deployed in current architecture)
 
-Aplikasi pakai friendbot (`/api/faucet` → `friendbot.stellar.org`). Kontrak ini tidak digunakan karena XLM native SAC tidak bisa di-mint oleh arbitrary account.
+## Contract 4: artel-faucet
+
+**File:** `contracts/artel-faucet/src/lib.rs` (~66 lines)
+**Status:** Tidak dipakai di frontend (faucet via friendbot / /dapp/faucet page)
+**Address:** N/A

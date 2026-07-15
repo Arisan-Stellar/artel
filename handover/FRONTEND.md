@@ -1,151 +1,136 @@
-# 🖥️ ARTEL — Frontend Guide
+# 🎨 ARTEL — Frontend Documentation
 
-## Pages & Routes
+## Halaman
 
-| Route | Page | Type | Description |
-|-------|------|------|-------------|
-| `/` | Landing page | Static | 7-section storytelling landing |
-| `/dapp/pools` | Pool list | Static (CSR fetch) | List semua pool dari chain, filter (ALL/OPEN/ACTIVE/COMPLETED), WalletCard |
-| `/dapp/pools/[id]` | Pool detail | Dynamic | Detail pool, buttons (Join/Deposit/Start/Select/Claim), participants, yield stats |
-| `/dapp/create` | Create pool | Static (CSR) | Form: name, deposit, max members → deploy via Freighter |
-| `/dapp/dashboard` | Dashboard | Static (CSR) | User's pools, points, tickets |
-| `/dapp/profile` | Profile | Static (CSR) | On-chain reputation, activity, badges |
-| `/dapp/leaderboard` | Leaderboard | Static (CSR) | Cross-pool ranking |
-| `/dapp/yield` | Yield dashboard | Static (CSR) | Blend stats, member yields (Edwin's PR) |
-| `/dapp/gacha` | Gacha | Static | Gacha page |
-| `/dapp/simulator` | Simulator | Static | Interactive ROSCA simulator |
-| `/dapp/faq` | FAQ | Static | FAQ page |
-| `/dapp/faucet` | Faucet | Static | Claim 10,000 testnet XLM |
-| `/api/contract-state` | API | Dynamic | View function proxy to RPC |
+### Landing Page (`/`)
 
----
+7-section storytelling page:
+| Section | Component | Content |
+|---------|-----------|---------|
+| Hero | inline | Title, stats, ticker, CTA |
+| Akar | `Akar` | Global ROSCA history |
+| Percikan | `Percikan` | Spark intro |
+| Retakan | `Retakan` | Pain points |
+| Tempaan | `Tempaan` | Collateral solution |
+| Nyala | `Nyala` | Triple Yield |
+| Sistem | `Sistem` | How it works |
+| Galeri | `Galeri` | Features grid |
+| Bukti | `Bukti` | Proof/comparison |
+| CTA | `Cta` | Launch + GitHub links |
+| Footer | landing footer | Links, copyright |
+
+### dApp Pages (11 halaman)
+
+| Route | Page | Fungsi |
+|-------|------|--------|
+| `/dapp/pools` | pools/page.tsx | Listing pool + filter |
+| `/dapp/pools/[id]` | pools/[id]/page.tsx | Detail pool + actions |
+| `/dapp/create` | create/page.tsx | Form buat pool baru |
+| `/dapp/yield` | yield/page.tsx | Dashboard yield |
+| `/dapp/simulator` | simulator/page.tsx | ROSCA simulator |
+| `/dapp/leaderboard` | leaderboard/page.tsx | Ranking member |
+| `/dapp/profile` | profile/page.tsx | Profil member |
+| `/dapp/faq` | faq/page.tsx | FAQ pertanyaan |
+| `/dapp/faucet` | faucet/page.tsx | Klaim testnet XLM |
+| `/dapp/dashboard` | dashboard/page.tsx | Dashboard user |
+| `/dapp/gacha` | gacha/page.tsx | Info gacha vault |
+
+## Key Hooks
+
+### `useWallet()` — Multi-wallet
+```typescript
+const { address, walletType, connecting, connect, disconnect } = useWallet();
+// connect("freighter" | "albedo" | "xbull" | "lobstr")
+```
+
+### `useFreighterTx()` — Contract invocation
+```typescript
+const { loading, error, txHash, invokeContract } = useFreighterTx();
+const result = await invokeContract(CONTRACT_IDS.pool, "contribute", [scvU32(0), scvAddress(address)]);
+```
+
+### `useDict()` — i18n
+```typescript
+const { dapp } = useDict();
+<h1>{dapp.pools.title}</h1>
+```
+
+### `useLocale()` — Language control
+```typescript
+const { locale, toggle } = useLocale();
+// locale: "en" | "id"
+```
 
 ## Key Components
 
-### useFreighterTx (`hooks/useFreighterTx.ts`)
-Hook utama untuk interaksi kontrak via browser wallet.
-
+### Buttons
 ```typescript
-const { loading, error, txHash, invokeContract } = useFreighterTx();
-
-// Panggil kontrak
-await invokeContract(CONTRACT_IDS.pool, "join", [scvU32(poolId), scvAddress(address)]);
+BTN_PRIMARY   // Blue primary
+BTN_ORANGE    // Orange action
+BTN_SUCCESS   // Green success
+// Di pools/[id]/page.tsx
 ```
 
-**Flow:**
-1. Dapatkan pubKey dari WalletContext
-2. Build transaction → simulate → assemble → sign (via wallet extension) → send → poll
-3. Return `{ hash, success }`
-
-**Error Handling:**
-- **ERROR_MAP** — ~25 pattern regex untuk menerjemahkan raw contract errors ke bahasa Indonesia
-- Fallback: extract string dalam kutip, atau truncate 120 chars
-- Semua error dari kontrak, wallet, atau jaringan Stellar di-mapping
-
-### WalletContext (`hooks/WalletContext.tsx`)
-Multi-wallet provider — unified interface untuk Freighter, Albedo, xBull, Lobstr.
-
+### ArtelHeader
 ```typescript
-const { address, walletType, connecting, connect, disconnect } = useWallet();
-
-connect()    // Pilih wallet (Freighter default) → getPublicKey
-disconnect() // Reset state
+CARD_CLASS    // Card styling
+LABEL_MONO    // Monospace label style
+HEADING_FONT  // Heading font (Bebas Neue)
+BarcodeStrip  // Decorative element
 ```
 
-### artel-sdk (`lib/artel-sdk.ts`)
-Config + contract client.
+## Wallet Integration
+
+### Freighter
+```typescript
+import { isConnected, requestAccess, getAddress, signTransaction } from "@stellar/freighter-api";
+// Connect flow:
+// 1. await requestAccess() → prompts user in popup
+// 2. await getAddress() → returns { address: "G..." }
+// 3. await signTransaction(txXdr, opts) → returns signed XDR
+```
+
+### Error Map
+```typescript
+const ERROR_MAP: [RegExp, string][] = [
+  [/no new yield/i, "Belum ada yield baru..."],
+  [/pool not active/i, "Pool belum aktif..."],
+  [/not enough balance/i, "Saldo tidak mencukupi..."],
+  [/already a member/i, "Kamu sudah tergabung..."],
+  // ... 30+ patterns
+];
+```
+
+## i18n Keys Structure
 
 ```typescript
-export const NETWORK = process.env.NEXT_PUBLIC_NETWORK || "testnet";
-export const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || "https://soroban-testnet.stellar.org";
-export const CONTRACT_IDS = {
-  pool: env_or("CAHJPUKI..."),  // Override via NEXT_PUBLIC_CONTRACT_POOL
-  vault: env_or("CCBQFVC3..."),  // Override via NEXT_PUBLIC_CONTRACT_VAULT
-  blend: env_or(""),            // Override via NEXT_PUBLIC_CONTRACT_BLEND
+dapp: {
+  nav: { pools, simulator, leaderboard, yield_, profile, faq, faucet, dashboard, gacha, create },
+  shared: { connect, disconnect, connecting, back, share, search, prev, next, noData, close, notice, roscoProtocol },
+  status: { active, ready, open_, completed, pending },
+  pools: { title, all, filterActive, filterReady, filterOpen, filterCompleted, members, deposit, cycle, state, view, poolFunds, noPools },
+  poolDetail: { ... 40+ keys },
+  yield_: { ... 30+ keys },
+  create: { ... 10 keys },
+  simulator: { ... },
+  leaderboard: { ... },
+  profile: { ... },
+  faq: { ... },
+  faucet: { ... },
+  dashboard: { ... },
+  gacha: { ... },
+}
+```
+
+## Error Handling Pattern
+
+```typescript
+// Di pools/[id]/page.tsx
+const runTx = async (method: string, args: xdr.ScVal[]) => {
+  const result = await invokeContract(CONTRACT_IDS.pool, method, args);
+  if (result?.success) await refreshAll();
+  return result;
 };
+
+// Auto-maps contract errors to Bahasa Indonesia via ERROR_MAP
 ```
-
-### poolMath (`lib/poolMath.ts`)
-Perhitungan collateral, join cost, contribution.
-
-```typescript
-getRequiredCollateralFromConfig(config) // Collateral dari config (125% default)
-getJoinCostFromConfig(config)          // Collateral + contribution (all-in join)
-getContributionFromConfig(config)      // Iuran per ronde
-```
-
----
-
-## Pool Detail Page Flow ([id]/page.tsx)
-
-Halaman paling kompleks. Berikut flow button-nya:
-
-```
-Connect wallet?
-    → NO: prompt connect
-    → YES: check state
-
-State mapping:
-    Pending + is_full   = "ready"
-    Pending + !is_full  = "open"
-    Active              = "active"
-    Completed           = "completed"
-
-Buttons (conditional):
-    canJoin       = open && !participant && !full && hasAddress
-    canStart      = ready && isAdmin
-    canDeposit    = active && participant && !hasPaid
-    canSelect     = active && isAdmin
-    canClaimPayout = participant && pendingPayout > 0 && !claimed
-    canClaimFinal  = completed && participant && !claimed
-    canDrawGacha   = completed && isAdmin && yieldCumulative > 0
-```
-
-### Display Fixes (applied)
-| Fix | Before | After |
-|-----|--------|-------|
-| **FUNDS** | `deposit * members` (salah) | `pool_funds_balance` dari chain (akurat) |
-| **Participant badges** | `paid: false, won: false` (hardcode) | Fetch `get_member_info` per participant |
-| **Tickets** | `6` (hardcode) | `get_tickets` untuk connected member |
-| **cycleDays** | `30` (hardcode) | `round_duration / 86400` dari config |
-| **Claim Final btn** | Muncul pas active pool (confusing) | Hanya Completed |
-| **Draw Gacha btn** | Selalu muncul | Hanya Completed + admin + yield > 0 |
-| **Error messages** | Raw VM errors | Bahasa Indonesia user-friendly |
-| **Filter tabs** | `#888` on black (low contrast) | `#bbb` (inactive), `#fff` (hover) |
-
----
-
-## Design System
-- **Colors:** `--color-artel` (gold kunyit), `--color-teal: #14b8a6`, `--color-sui`, `--color-crack`
-- **Cards:** Brutalist style — `border-[3px] border-[#0a0a0a] shadow-[5px_5px_0_#0a0a0a]`
-- **Fonts:** Bebas Neue (headings), Inter (body), Space Grotesk (numbers)
-- **Tabs:** Neo-brutalist — sliding indicator, radio buttons, CSS-only
-- **Badges:** AnimatedBadge component — letter-by-letter flip on hover
-
----
-
-## 🆕 Updates (July 2026)
-
-### Yield Page Overhaul
-| Change | Before | After |
-|--------|--------|-------|
-| Harvest button | Simulation mode (bypass) | Real `harvest_blend_yield` via `useFreighterTx` |
-| Blend info | "Simulation Info" banner | Live Blend link to stellar.expert |
-| ESLint | 5 errors | 0 errors |
-| Data source | Mocked | Real `blend_btoken_balance` from chain |
-
-### Pool Detail Page
-- `blendStaked` now shows real Blend collateral values (was always 0)
-- No data format changes needed
-
-### Create Pool Page
-- `blend_address` fixed: was `XLM_CONTRACT`, now `CONTRACT_IDS.blend`
-
-### Mobile Responsive
-- Hamburger menu (Menu/X toggle) added to `dapp/layout.tsx`
-- Slide-down nav with all 7 dApp routes
-- Active state highlighting on mobile
-
-### New Error Mappings
-- `no new yield to distribute` → "Belum ada yield baru yang bisa dibagikan"
-- `no Blend collateral to harvest` → handled by assertion

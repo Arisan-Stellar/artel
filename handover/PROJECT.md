@@ -1,111 +1,101 @@
-# 🎯 ARTEL — Project Overview
+# 💼 ARTEL — Business Context & Economic Model
 
 ## What is ARTEL?
 
-**ARTEL = ROSCA Protocol on Stellar.** Sebuah protokol **tabungan bergilir (ROSCA/arisan)** yang berjalan
-sepenuhnya di atas blockchain Stellar dengan smart contract Soroban.
+**ARTEL** is a trustless ROSCA (Rotating Savings and Credit Association) protocol built on Stellar Soroban. Known across Asia as:
 
-ROSCA (Rotating Savings and Credit Association) adalah mekanisme keuangan informal yang dipakai
-oleh **100+ juta orang di Asia Pasifik** — dikenal sebagai *Arisan* (Indonesia), *Chit Fund* (India),
-*Tanda* (Mexico), *Kye* (Korea), dan puluhan nama lainnya.
+| Country | Local Name |
+|---------|-----------|
+| 🇮🇩 Indonesia | **Arisan** |
+| 🇮🇳 India | **Chit Fund** |
+| 🇰🇷 South Korea | **Kye** |
+| 🇲🇽 Mexico | **Tanda** |
+| 🇯🇵 Japan | **Mujin** |
+| 🇵🇭 Philippines | **Paluwagan** |
+| 🇧🇷 Brazil | **Consórcio** |
+| 🇳🇬 Nigeria | **Esusu / Ajo** |
 
-## The Problem (Masalah ROSCA Tradisional)
+Over **100 million people** in APAC participate in these informal savings circles. ARTEL takes this centuries-old mechanism on-chain.
 
-| # | Masalah | Dampak |
-|---|---------|--------|
-| 🏃 | **Pelarian bendahara** | Pemegang kas kabur bawa uang — tidak ada recourse |
-| 💤 | **Uang menganggur** | Dana terkumpul diam saja di antara ronde pembayaran |
-| 📋 | **Catatan manual** | Buku tulis, spreadsheet WhatsApp, rawan error |
-| 🔒 | **Terbatas geografis** | Cuma bisa dalam satu RT/kantor/komunitas kecil |
+## The Problem
 
-## The Solution (Solusi ARTEL)
+| # | Pain Point | Impact |
+|---|-----------|--------|
+| 🏃 | **Trust breach** | Organizer runs with the pot — no recourse |
+| 💤 | **Idle money** | Pooled capital sits dead between cycles |
+| 📋 | **Manual records** | Paper ledgers, error-prone |
+| 🔒 | **Geographic lock** | Only works within one neighborhood |
 
-### 1. Smart Contract sebagai Bendahara
-- Kontrak Soroban menggantikan bendahara manusia
-- Semua aturan di-enforce oleh kode — tidak bisa dicurangi
-- Transparan & verifiable on-chain
+## The Solution — 3 Layer Protection
 
-### 2. ≥125% Collateral (Jaminan)
-Setiap anggota **wajib deposit collateral ≥125%** dari total iuran sebelum join.
-Kalau ada yang kabur/nunggak → collateral disita otomatis.
-**Matematikanya:** rugi kalau kabur > untung kalau tetap ikut.
+### 🔐 Layer 1: Collateral ≥125%
+Every member deposits ≥125% of total pool value as collateral.
+Defecting costs MORE than staying — math makes it irrational.
 
-### 3. Triple Yield (Pendapatan Pasif)
-Dana collateral yang menganggur diinvestasikan untuk menghasilkan yield:
-- **50% → dibagi merata ke anggota aktif**
-- **40% → masuk vault untuk undian gacha tahunan**
-- **10% → operasional protokol**
+### 🧹 Layer 2: Automated Smart Contract
+Smart contracts handle: contribution collection, collateral staking, winner selection, yield distribution. No admin needed.
 
-### 4. Gacha Jackpot Tahunan (30 Juni)
-Akumulasi yield 40% dari semua pool diundi setahun sekali via sistem tiket.
-Tiket didapat dari pembayaran tepat waktu — semakin rajin, semakin besar peluang.
+### 💰 Layer 3: Triple Yield
+Idle pooled capital earns yield via Blend Protocol:
+- 75% → distributed equally to members
+- 25% → pooled into Gacha vault (annual jackpot)
 
----
+## Economic Model (FINAL — JANGAN DIUBAH)
 
-## 💰 Economic Model (Model Ekonomi)
+| Rule | Value |
+|------|-------|
+| **Fair ROSCA** | Semua member bayar SETIAP ronde (termasuk pemenang lama). Net-zero: bayar 27.5 = balik 27.5. |
+| **All-in Join** | JOIN = bayar collateral + iuran cycle-1 sekaligus. |
+| **Fee 0%** | `admin_fee_bps = 0`. Tidak ada potongan. |
+| **Collateral Ratio** | ≥100% (default 12500 bps = 125%) |
 
-### FAIR ROSCA (Final — redesain oleh Sisyphus)
+## Tokenomics
 
-Berbeda dengan ROSCA tradisional, ARTEL menggunakan model **FAIR ROSCA**:
-- **Semua member bayar SETIAP ronde** — termasuk pemenang sebelumnya
-- Setiap member **menang 1 pot penuh** di 1 ronde unik
-- Hasil akhir: **semua member net ~0** (impas, cuma kena fee transaksi)
+| Item | Detail |
+|------|--------|
+| **Token** | XLM (Stellar native) |
+| **Collateral** | Disimpan di contract, di-supply ke Blend Protocol |
+| **Yield Source** | Blend Protocol lending pool (TestnetV2) |
+| **Yield Distribution** | 75% member / 25% gacha vault |
+| **Gacha Frequency** | Annual (June 30 window) |
 
-**Contoh (3 member, iuran 10 XLM):**
+## State Machine — Monthly Cycle
+
 ```
-Ronde 1: A, B, C bayar 10 → pot 30 → winner A
-Ronde 2: A, B, C bayar 10 → pot 30 → winner B  (A tetap bayar meski sudah menang!)
-Ronde 3: A, B, C bayar 10 → pot 30 → winner C
-Hasil: setiap orang bayar 30, menang 30 → net 0
+╔══════════════════════════════════════════════╗
+║          MONTHLY ROUND                       ║
+║                                              ║
+║  Day 1-10   EARLY PAY    +3 points   ★★★    ║
+║  Day 10-20  MID PAY      +1 point    ★☆☆    ║
+║  Day 21+    SLASH/WARNING           -2 pts   ║
+║                                              ║
+║  Day 25     WINNER SELECTED ← random         ║
+║  Day 30     YIELD DISTRIBUTED                ║
+║                                              ║
+╚══════════════════════════════════╦═══════════╝
+                                   ║
+╔══════════════════════════════════╩═══════════╗
+║         END OF POOL                          ║
+║  → All yield distributed                     ║
+║  → Collateral returned to members            ║
+║  → Gacha drawn (if annual window)            ║
+╚══════════════════════════════════════════════╝
 ```
 
-### ALL-IN JOIN
-Saat JOIN, anggota **langsung bayar collateral + iuran ronde pertama** sekaligus.
-- Jadi pas pool START, semua sudah bayar ronde 1 → langsung bisa select winner
-- Untuk ronde 2+, pakai tombol Deposit biasa
+## Pool States
 
-### FEE 0%
-`admin_fee_bps = 0`. Tidak ada potongan fee. Semua deposit masuk penuh ke pot.
-
----
-
-## 🏗️ Key Architecture Decisions
-
-| Keputusan | Detail |
-|-----------|--------|
-| **1 Contract → Many Pools** | Model ala Sui — semua pool hidup di dalam 1 kontrak arisan, dibedakan pakai `pool_id` (angka urut) |
-| **Branch `faiz`** | Semua development di branch `faiz`, PR ke `main`. Jangan kerja langsung di `main` |
-| **Config via `NEXT_PUBLIC_*`** | Semua config pakai env vars dengan fallback di `artel-sdk.ts` |
-| **Wallet signing** | User tanda tangan sendiri via Freighter/Albedo/xBull/Lobstr — aplikasi TIDAK pegang secret key user |
-| **Blend Protocol** | Integrasi Blend (lending protocol) DIRENCANAKAN tapi BELUM LIVE — kode kerangka ada, fungsi no-op |
-
----
-
-## 🆕 Blend Protocol Integration (Added July 2026)
-
-ARTEL sekarang terintegrasi dengan **Blend Protocol** — lending protocol di Stellar (seperti Aave).
-Collateral member (≥125%) otomatis di-supply ke Blend pool TestnetV2 untuk menghasilkan yield.
-
-| Fitur | Blend Action |
+| State | Description |
 |-------|-------------|
-| Create Pool / Join | Collateral auto-supply ke Blend via `submit(SupplyCollateral)` |
-| Claim Final / Exit | Collateral auto-withdraw dari Blend via `submit(WithdrawCollateral)` |
-| Harvest Yield | Admin klik → withdraw semua + re-supply principal → yield ke-track on-chain |
-| Yield Distribution | 75% dibagi rata ke member / 25% masuk vault gacha |
+| **Pending** | Pool dibuat, menunggu member join |
+| **Active** | Pool berjalan, member bayar tiap ronde |
+| **Completed** | Semua siklus selesai, bisa claim final |
 
-## 🟢 Fitur Saat Ini
+## Scoring System
 
-| Fitur | Status |
-|-------|--------|
-| Fair ROSCA (semua bayar tiap ronde) | ✅ |
-| All-in Join (collateral + iuran cycle-1) | ✅ |
-| Fee 0% (admin_fee_bps = 0) | ✅ |
-| ≥125% Collateral guarantee | ✅ |
-| Blend Protocol yield | ✅ LIVE |
-| Harvest yield on-chain | ✅ |
-| Gacha jackpot tahunan | ✅ |
-| Mobile responsive (hamburger) | ✅ |
-| CI/CD GitHub Actions | ✅ |
-| Multi-wallet (Freighter, Albedo, xBull, Lobstr) | ✅ |
-| i18n EN + ID (landing page) | ✅ |
-| Vault auto-register | ❌ Deferred |
+| Payment Timing | Points |
+|---------------|--------|
+| Early (Day 1-10) | +3 |
+| Mid (Day 10-20) | +1 |
+| Late/Slash (Day 21+) | -2 |
+
+Streak multipliers (100% → 200%) boost ticket count for gacha.

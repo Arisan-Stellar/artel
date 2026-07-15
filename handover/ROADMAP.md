@@ -1,128 +1,64 @@
 # 🗺️ ARTEL — Roadmap & Known Issues
 
-## 🔥 NEXT STEP (Priority #1) — Blend Protocol Yield Integration
+## ✅ Completed
 
-**Goal:** Integrasi beneran antara ARTEL arisan-contract dengan Blend Protocol pool 
-sehingga collateral yang di-stake menghasilkan yield secara otomatis.
+| Feature | Status | Catatan |
+|---------|--------|---------|
+| Smart contracts (4) | ✅ | arisan, vault, factory, faucet |
+| Blend Protocol | ✅ | Supply, withdraw, harvest, yield tracking |
+| Vault Wire | ✅ | Auto-register ke gacha vault |
+| i18n (EN/ID) | ✅ | All 11 dApp pages |
+| Mobile responsive | ✅ | All pages |
+| Playwright E2E | ✅ | 203 tests |
+| CI/CD | ✅ | GitHub Actions |
+| Landing page | ✅ | 7 sections storytelling |
+| Launch App button | ✅ | Redesigned |
+| CSS variables | ✅ | All defined |
 
-### Yang sudah ada (kerangka)
-- ✅ `blend_address` di `ArisanConfig` (field untuk address Blend Pool)
-- ✅ `blend_btoken_balance` di `Pool` struct (tracking internal)
-- ✅ `blend_supply()` / `blend_withdraw()` — fungsi no-op (kerangka, belum nyala)
-- ✅ `harvest_yield()` — admin bisa deposit yield manual
-- ✅ `/dapp/yield` page — UI untuk yield dashboard (Edwin's PR)
-- ✅ `CONTRACT_IDS.blend` di `artel-sdk.ts`
+## 🔜 Backlog
 
-### Yang perlu dikerjakan
-| # | Task | Detail |
-|---|------|--------|
-| 1 | **Cari Blend Pool address** | Blend Protocol v2 udah terdeploy di testnet. Pool Factory: `CDSYOAVXFY7SM5S64IZPPPYB4GVGGLMQVFREPSQQEZVIWXX5R23G4QSU`. BUTUH: address Pool spesifik yg nerima XLM & punya backstop. Cek `blend-utils/testnet.contracts.json` |
-| 2 | **Import Blend SDK** | Pakai `@blend-capital/blend-contract-sdk` (Rust) atau `@blend-capital/blend-sdk` (JS). Atau langsung `env.invoke_contract` dengan format `submit` yang benar |
-| 3 | **Rewrite `blend_supply`** | Bukan manggil `supply` (fungsi nggak ada), tapi **`submit` dengan `SupplyCollateral` request type**. Format: `pool.submit({ from, spender, to, requests: [{ amount, request_type: SupplyCollateral, address: XLM }] })` |
-| 4 | **Rewrite `blend_withdraw`** | Sama — `submit` dengan `WithdrawCollateral` request type |
-| 5 | **Fix `blend_btoken_balance` tracking** | Saat ini balance tracking kacau karena Blend no-op. Perlu sync dengan actual Blend position |
-| 6 | **Aktifkan di join/create/contribute/claim** | Panggil `blend_supply` pas JOIN/CREATE (collateral) dan CONTRIBUTE (iuran). Panggil `blend_withdraw` pas CLAIM_FINAL/EXIT |
-| 7 | **Deploy + test** | Redeploy kontrak → create pool → join → cek yield di `/dapp/yield` |
-| 8 | **Update UI** | Tampilkan Blend Staked stat yang akurat (bukan minus), harvest yield button, live yield data |
+### Priority: Medium
 
-### Diskusi yang perlu diselesaikan sebelum mulai
-- **A. Supply collateral doang, atau iuran juga?** Collateral jumlah besar (≥125%) → yield signifikan. Iuran nilainya kecil → complexity vs benefit?
-- **B. Harvest: manual (admin) atau otomatis?** Manual lebih hemat gas. Otomatis lebih adil tapi mahal.
-- **C. Blend Pool: pakai yang udah ada atau deploy sendiri?** Cek dulu ada yg nerima XLM di testnet.
-- **D. Risiko:** Blend di-hack → collateral lenyap. Liquidity crunch → yield 0. Perlu mitigasi.
+| Item | Detail | Effort |
+|------|--------|--------|
+| **Mobile lebih thorough** | Yield page, pool detail masih ada yg bisa diperbaiki | ~2 jam |
+| **Demo page** | Interactive UI demo buat presentasi | ~3 jam |
+| **Stellar Mainnet** | Deploy ke mainnet (butuh XLM real) | ~1 jam |
+| **Vault annual_gacha** | Trigger gacha setelah 1 tahun | ~2 jam |
 
----
+### Priority: Low
 
-## Priority: HIGH (sebelum mainnet)
+| Item | Detail | Effort |
+|------|--------|--------|
+| **Playwright wallet tests** | Freighter full flow (butuh extension) | ~2 jam |
+| **Error boundaries** | Better error handling for contract failures | ~1 jam |
+| **Loading states** | Skeleton screens untuk pool data | ~1 jam |
+| **Accessibility** | WCAG compliance audit | ~3 jam |
 
-| # | Item | Detail | Effort |
-|---|------|--------|--------|
-| 2 | **Randomness upgrade** | Ganti `derive_seed` (admin-timing biasable) dengan VRF atau commit-reveal scheme. Critical untuk mainnet fairness | Medium |
-| 3 | **Wire vault `register_participant`** | Auto-register member ke vault saat contribute (saat ini admin-manual lewat CLI). Ganti auth dari admin ke arisan contract address | Small |
-| 4 | **Wire vault `receive_yield`** | Panggil vault dari `distribute_collateral_yield` via `env.invoke_contract`. Saat ini yield manual transfer | Medium |
-| 5 | **Fee sponsorship (fee-bump)** | Backend service untuk bayar gas fee user → 0 gas fee experience | Medium |
+## 🐛 Known Issues
 
----
+| Issue | Severity | Workaround |
+|-------|----------|------------|
+| Landing page overlay intercepts clicks | Low | Skip test on mobile viewport |
+| `userDataDir` in playwright config | Fixed | Was causing tsc error in CI |
+| Freighter popup timing | Low | Retry connect if fails |
+| Contract addresses hardcoded in ENV | Low | Override via Vercel env vars |
 
-## Priority: MEDIUM (UX & Polish)
+## 🧪 Not Tested (Manual Only)
 
-| # | Item | Detail | Effort |
-|---|------|--------|--------|
-| 6 | **Yield page data** | `/dapp/yield` saat ini baca data yang tidak akurat (`blend_btoken_balance` minus). Fix: hide Blend stats kalau Blend not live, atau wire ke data kontrak yang valid | Small |
-| 7 | **Pool seed data** | Bikin beberapa pool demo via UI/CLI supaya ada data buat testing dashboard/leaderboard/profile | Small |
-| 8 | **E2E test via browser** | Setup Playwright/Freighter integration (terkendala extension injection di headless). Atau bisa pakai manual test guide di README | Medium |
-| 9 | **i18n completeness** | Lengkapi terjemahan EN + ID untuk semua halaman (yield page belum fully translated) | Medium |
-| 10 | **Mobile responsive** | Cek semua halaman di mobile — beberapa card/button mungkin perlu adjustment | Small |
-
----
-
-## Priority: LOW (Nice-to-have)
-
-| # | Item | Detail | Effort |
-|---|------|--------|--------|
-| 11 | **Git history scrub** | Force-push `git filter-repo` untuk hapus secret lama dari history. BUTUH KOORDINASI 1 TIM (rewrite shared history → semua re-clone). Saat ini secret sudah worthless (akun lama HTTP 404). Cuma perlu kalau repo go public/mainnet | Medium |
-| 12 | **ESLint cleanup** | 5 errors pre-existing dari Edwin (`yield/page.tsx`: `any` types, unescaped entities) | Small |
-| 13 | **Remove deprecated code** | Hapus `artel-factory`, `artel-faucet` dari build + references. Atau biarin with DEPRECATED marker | Small |
-| 14 | **Automated CI/CD** | GitHub Actions untuk auto-run `cargo test` + `tsc` + `eslint` on PR | Small |
-| 15 | **On-chain event indexing** | Index events (`poolnew`, `memjoin`, `winsel`, `contrib`, `winclaim`, `finclaim`) untuk dashboard yang lebih responsif (ganti polling API) | Large |
-
----
-
-## Known Issues (Not Fixed)
-
-| # | Issue | Impact | Workaround |
-|---|-------|--------|------------|
-| **P1** | `blend_btoken_balance` not accurate (minus values) | Stat Blend di UI misleading | Hide Blend stats until integration live |
-| **P2** | `yield_balance` always 0 (no real yield) | Yield page shows zeros | Works as expected — yield requires Blend or manual deposit |
-| **P3** | `/dapp/yield` page 5 ESLint errors | Lint warnings, doesn't affect build | Accept for now |
-| **P4** | `select_winner` panic if all weights = 0 (edge case after multiple slashes) | Cannot select winner if all members inactive | Fixed: assert `weight_sum > 0` — will show clear error |
-| **P5** | `harvest_yield` requires admin manual deposit | Not automated | Works as designed — admin manually triggers |
-| **P6** | Vault date check uses approximate day-of-year | Off by 1 day in leap years | Acceptable for hackathon |
-| **P7** | Wallet password + old deployer secret visible in git history | Cosmetic (accounts are dead) | Scrub deferred |
-| **P8** | Freighter extension API not injectable via headless Playwright | Cannot fully automate browser E2E tests | Use CLI for contract testing, manual for browser UI testing |
-
----
-
-## Deprecated Contracts
-
-| Contract | Status | Why |
-|----------|--------|-----|
-| `artel-factory` | DEPRECATED | "1 contract → many pools" architecture doesn't need a registry |
-| `artel-faucet` | Unused | App uses Friendbot (`/api/faucet`); contract can't mint XLM native SAC |
-| Old arisan `CAHJPUKI...` | Abandoned | Replaced by `CBDJOVCV...` (Blend framework) |
-| Old vault `CCBQFVC3...` | Abandoned | Replaced by `CAW77FMN...` |
-
----
-
-## 🆕 Progress (July 2026)
-
-### ✅ DONE
-| # | Item | Commit | Date |
-|---|------|--------|------|
-| 1 | Blend Protocol integration | d30a3bc | 14 Jul |
-| 2 | Fix Blend from select_winner | 83f077f | 14 Jul |
-| 3 | harvest_blend_yield | 95fdcc8 | 14 Jul |
-| 4 | On-chain yield tracking | 8b997d2 | 14 Jul |
-| 5 | Remove deprecated harvest_yield | b27c963 | 14 Jul |
-| 6 | ESLint 4→0 | b27c963 | 14 Jul |
-| 7 | Demo pools seeded | b27c963 | 14 Jul |
-| 8 | Randomness upgrade | f97d4a7 | 15 Jul |
-| 9 | Audit bug fixes (2 critical) | 5b39361 | 15 Jul |
-| 10 | Mobile hamburger menu | bc0eca2 | 15 Jul |
-| 11 | CI/CD GitHub Actions | 404457c | 15 Jul |
-
-### ❌ DEFERRED
-| Item | Reason |
+| Area | Reason |
 |------|--------|
-| Vault auto-register (wire `register_participant`) | Soroban cross-contract auth blocked |
-| Git history scrub | Secret lama udah worthless (account-merged 404) |
-| Full i18n for dApp pages | Restructure besar, low priority |
+| Full pool lifecycle (3 rounds complete) | Takes too long (need fast rounds) |
+| Annual gacha draw | Only works June-July |
+| Albedo / xBull / Lobstr wallets | Only Freighter tested |
+| Pool with 10+ members | Gas limit unknown |
 
-### 📌 REMAINING
-| Priority | Item | Effort |
-|----------|------|--------|
-| HIGH | Deploy kontrak terbaru + E2E (nunggu testnet) | 30m |
-| MEDIUM | Mobile responsive → lebih thorough (yield page, pool detail) | 30m |
-| MEDIUM | Merge faiz → main | 5m |
-| LOW | E2E test via browser (Playwright) | 2h |
-| LOW | On-chain event indexing | 4h |
+## 📝 Notes for Next Dev/AI
+
+1. **Testnet bisa down** — Stellar testnet kadang bermasalah. Cek dengan `stellar contract invoke ... get_state`
+2. **Freighter extension** — Harus terinstall di browser. Popup handling perlu Playwright `context.waitForEvent('page')`
+3. **Blend yield** — Butuh waktu buat accumulate yield. Harvest pas yield > 0 baru keliatan.
+4. **Vault gacha** — Cuma bisa di-trigger pas June-July (annual window).
+5. **Contract addresses** — Setup Vercel env vars BEFORE deploying to production.
+6. **Dual remote** — `origin` punya dual push (org + personal). `git push` ke personal doang.
+7. **Commit dulu** — Jangan push sebelum direview Faiz.
