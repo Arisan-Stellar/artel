@@ -53,7 +53,7 @@ export function Cta() {
         {/* Trust badges */}
         <div data-reveal className="mt-8 flex flex-wrap items-center justify-center gap-3">
           {TRUST_BADGES.map(({ icon: Icon, key }) => (
-            <span key={key} className="inline-flex items-center gap-1.5 border-[2px] border-[var(--color-teal)] bg-[var(--color-teal)] bg-opacity-10 px-4 py-2 text-sm font-bold text-[var(--color-teal)]">
+            <span key={key} className="inline-flex items-center gap-1.5 border-[2px] border-[var(--color-teal)] bg-white px-4 py-2 text-sm font-bold text-[var(--color-teal)] shadow-[2px_2px_0_#0a0a0a]">
               <Icon className="size-4" />
               {dict.cta[key]}
             </span>
