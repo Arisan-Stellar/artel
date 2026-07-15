@@ -324,12 +324,12 @@ export default function YieldPage() {
             {/* INDIVIDUAL POOL CARDS */}
             {address && memberYields.filter(m => m.address === address).map((myCard, idx) => (
               <div key={`my-${idx}`} className="col-span-1 border-[3px] border-[#0a0a0a] bg-[#ccfbf1] p-5 shadow-[6px_6px_0_#0a0a0a] flex flex-col gap-4">
-                <div className="flex items-center justify-between border-b-2 border-dashed border-[#0a0a0a] pb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="size-8 rounded-full border-[2px] border-[#0a0a0a] bg-[#f59e0b] flex items-center justify-center font-black">⭐</div>
-                    <div>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b-2 border-dashed border-[#0a0a0a] pb-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="size-8 shrink-0 rounded-full border-[2px] border-[#0a0a0a] bg-[#f59e0b] flex items-center justify-center font-black">⭐</div>
+                    <div className="min-w-0">
                       <p className="text-xs font-black uppercase tracking-wider text-[#555]" style={LABEL_MONO}>Pool {myCard.poolId}</p>
-                      <p className="text-sm font-bold truncate max-w-[140px] sm:max-w-[200px] lg:max-w-none" title={address}>{address}</p>
+                      <p className="text-sm font-bold truncate max-w-[160px] sm:max-w-[200px] lg:max-w-[260px]" title={address}>{address}</p>
                     </div>
                   </div>
                   <button 
