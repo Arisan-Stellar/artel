@@ -5,22 +5,26 @@ test.describe("Navigation", () => {
     test.skip(); // Logo link intercepts with landing page <a> — use nav links instead
   });
 
-  for (const { name, path } of [
-    { name: "Simulator", path: "/dapp/simulator" },
-    { name: "Leaderboard", path: "/dapp/leaderboard" },
-    { name: "Yield", path: "/dapp/yield" },
-    { name: "FAQ", path: "/dapp/faq" },
-    { name: "Faucet", path: "/dapp/faucet" },
-  ]) {
-    test(`desktop nav link to ${name}`, async ({ page }) => {
-      await page.goto("/dapp/pools");
-      await page.waitForLoadState("networkidle");
-      const navLink = page.locator(`a[href='${path}']`).first();
-      await expect(navLink).toBeVisible({ timeout: 5000 });
-      await navLink.click();
-      await expect(page).toHaveURL(path, { timeout: 10_000 });
-    });
-  }
+  test.describe("desktop nav links", () => {
+    test.use({ viewport: { width: 1280, height: 800 } });
+
+    for (const { name, path } of [
+      { name: "Simulator", path: "/dapp/simulator" },
+      { name: "Leaderboard", path: "/dapp/leaderboard" },
+      { name: "Yield", path: "/dapp/yield" },
+      { name: "FAQ", path: "/dapp/faq" },
+      { name: "Faucet", path: "/dapp/faucet" },
+    ]) {
+      test(`nav link to ${name}`, async ({ page }) => {
+        await page.goto("/dapp/pools");
+        await page.waitForLoadState("networkidle");
+        const navLink = page.locator(`a[href='${path}']`).first();
+        await expect(navLink).toBeVisible({ timeout: 5000 });
+        await navLink.click();
+        await expect(page).toHaveURL(path, { timeout: 10_000 });
+      });
+    }
+  });
 });
 
 test.describe("Hamburger Menu (mobile)", () => {
