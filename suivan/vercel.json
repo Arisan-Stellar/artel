@@ -1,5 +1,0 @@
-{
-  "buildCommand": "cd fe-suivan && npm install && npm run build",
-  "outputDirectory": "fe-suivan/.next",
-  "installCommand": "cd fe-suivan && npm install"
-}
