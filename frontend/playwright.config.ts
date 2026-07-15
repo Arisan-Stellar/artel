@@ -1,7 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const FREIGHTER_EXT = "/home/faiz/.config/chromium/Default/Extensions/bcacfldlkkdogcmkkibnjlakofdplcbk/5.43.0_0";
-const CHROME_PROFILE = "/home/faiz/.config/chromium";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -38,7 +37,6 @@ export default defineConfig({
             `--load-extension=${FREIGHTER_EXT}`,
             "--disable-features=Translate",
           ],
-          userDataDir: CHROME_PROFILE,
         },
       },
     },
