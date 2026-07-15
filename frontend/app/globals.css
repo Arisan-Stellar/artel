@@ -638,12 +638,10 @@
   letter-spacing: 0.06em;
   color: #bbb;
   transition: color 0.25s ease;
-  position: relative;
-  z-index: 1;
 }
 
 .tabs :checked + .label {
-  color: #0a0a0a;
+  color: #fff;
 }
 
 .tabs .input:not(:checked) + .label:hover {
