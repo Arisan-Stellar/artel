@@ -5,7 +5,6 @@ import { Copy, Check, ShieldCheck, Code, Key, ExternalLink } from "lucide-react"
 import { useDict } from "@/lib/i18n/LocaleProvider";
 import { useBoldReveal } from "@/components/motion/useBoldReveal";
 import { useMagnetic } from "@/components/motion/useMagnetic";
-import { Button } from "@/components/ui/Button";
 import { GhostWord } from "@/components/ui/GhostWord";
 import { DAPP_URL } from "@/components/ui/MiniNav";
 
@@ -61,10 +60,24 @@ export function Cta() {
         </div>
 
         {/* Primary CTA */}
-        <span ref={magnet} data-reveal className="mt-10 inline-block">
-          <Button href={DAPP_URL} rel="noopener noreferrer" className="px-10 py-5 text-lg">
-            {dict.cta.button}
-          </Button>
+        <span ref={magnet} data-reveal className="mt-10 inline-block group">
+          <a
+            href={DAPP_URL}
+            rel="noopener noreferrer"
+            className="relative inline-flex items-center gap-3 border-[4px] border-[#0a0a0a] bg-[var(--color-artel)] px-10 py-5 text-lg font-black uppercase tracking-[0.04em] shadow-[10px_10px_0_#0a0a0a] hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[14px_14px_0_#0a0a0a] active:translate-x-1 active:translate-y-1 active:shadow-[6px_6px_0_#0a0a0a] transition-all duration-150 text-[#0a0a0a]"
+            style={{ fontFamily: "'Bebas Neue', system-ui, sans-serif" }}
+          >
+            <span className="relative z-10">{dict.cta.button}</span>
+            <span className="relative z-10 inline-flex items-center gap-1">
+              <span className="w-6 h-[3px] bg-[#0a0a0a] transition-all duration-150 group-hover:w-8" />
+              <span className="text-lg leading-none">→</span>
+            </span>
+            {/* Decorative corners */}
+            <span className="absolute -top-[6px] -left-[6px] size-3 bg-[#0a0a0a]" />
+            <span className="absolute -top-[6px] -right-[6px] size-3 bg-[#0a0a0a]" />
+            <span className="absolute -bottom-[6px] -left-[6px] size-3 bg-[#0a0a0a]" />
+            <span className="absolute -bottom-[6px] -right-[6px] size-3 bg-[#0a0a0a]" />
+          </a>
         </span>
 
         {/* Contract Addresses */}
