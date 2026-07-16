@@ -30,9 +30,10 @@ next-env.d.ts
 refs-suivan/
 suivan/
 
-# ignore all .md files except root README.md and update-faiz/ docs
+# ignore all .md files except root README.md, update-faiz/ docs, and handover/
 *.md
 !/README.md
 !/update-faiz/*.md
+!/handover/*.md
 
-/refs-suivan
+/refs-suivan.omo/

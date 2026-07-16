@@ -33,7 +33,7 @@ function HeaderInner() {
 
   return (
     <header className="fixed inset-x-0 top-0 z-[999] flex items-center justify-between px-2 py-3 sm:px-4 sm:py-4 bg-[var(--color-artel)]/90 backdrop-blur-sm">
-      <Link href="/dapp/pools" className="group flex items-center gap-1.5 sm:gap-2.5 shrink-0 px-2 py-1 -mx-1 hover:bg-[var(--color-crack)] transition">
+      <Link href="/" className="group flex items-center gap-1.5 sm:gap-2.5 shrink-0 px-2 py-1 -mx-1 hover:bg-[var(--color-crack)] transition">
         <Image src="/artel-logo.png" alt="ARTEL" width={40} height={40} className="size-8 sm:size-10 object-contain" />
         <span className="flex flex-col items-start leading-none">
           <span className="text-lg sm:text-2xl font-black text-[#0a0a0a] tracking-[0.02em] group-hover:text-white transition" style={{ fontFamily: "'Bebas Neue', system-ui, sans-serif" }}>ARTEL</span>

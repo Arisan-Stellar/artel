@@ -10,22 +10,22 @@
 | `FLOW.md` | **E2E flow** — wallet setup, pool lifecycle, CLI commands |
 | `CHEATSHEET.md` | **Quick reference** — wallet addresses, contract IDs, shortcuts |
 
-## ⏱️ Durasi Total: ~8 menit
+## ⏱️ Durasi Total: ~4 menit
 
 | Babak | Scene | Durasi |
 |-------|-------|--------|
-| 1 | Landing Page | 30s |
-| 2 | Problem & Solution | 60s |
-| 3 | Connect Wallet | 40s |
-| 4 | Create Pool | 60s |
-| 5 | Join Pool | 60s |
-| 6 | Start Pool + Contribute | 90s |
-| 7 | Yield & Harvest | 60s |
-| 8 | Gacha Vault | 30s |
-| 9 | Claim + Final | 45s |
-| 10 | On-Chain Verification | 45s |
-| 11 | CTA + Closing | 20s |
-| | **Total** | **~8 menit** |
+| 1 | Landing Page | 20s |
+| 2 | Connect Wallet | 15s |
+| 3 | Create Pool | 25s |
+| 4 | Join Pool | 20s |
+| 5 | Start + Select Winner | 20s |
+| 6 | Contribute + Claim | 25s |
+| 7 | Yield & Harvest ⭐ | 45s |
+| 8 | Gacha Vault | 20s |
+| 9 | Claim Final | 20s |
+| 10 | On-Chain Verification | 20s |
+| 11 | CTA + Closing | 10s |
+| | **Total** | **~4 menit** |
 
 ## ✅ Persiapan Sebelum Rekam
 

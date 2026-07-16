@@ -1,150 +1,124 @@
-# 🎥 Shot List Teknis
-
-> Format: `[Scene] [Durasi] [Aksi] [Wallet]`
+# 🎥 Shot List — Versi Cepat (~4 menit)
 
 ---
 
-## Scene 1 — Landing Page (0:00 – 0:30)
+## Scene 1 — Landing (0:00 – 0:20)
 
-| Waktu | Aksi | Visual | Audio | Wallet |
-|-------|------|--------|-------|--------|
-| 0:00 | Buka landing page | Hero section — full screen | EN Intro | - |
-| 0:10 | Auto-scroll ke APAC countries | Countries grid fade in | EN Countries | - |
-| 0:20 | Scroll ke trust badges | "Auditable · Open Source · No Admin Keys" | EN Trust | - |
-| 0:28 | Transisi | Fade out | - | - |
+| Waktu | Aksi | Audio | Wallet |
+|-------|------|-------|--------|
+| 0:00 | Buka landing page, scroll hero → trust badges | EN/ID Intro | - |
+| 0:18 | Klik "Launch the App" | - | - |
 
 ---
 
-## Scene 2 — Problem & Solution (0:30 – 1:30)
+## Scene 2 — Connect (0:20 – 0:35)
 
-| Waktu | Aksi | Visual | Audio | Wallet |
-|-------|------|--------|-------|--------|
-| 0:30 | Scroll ke "Retakan" | 4 pain points cards | EN Problem | - |
-| 0:50 | Scroll ke "Tempaan" | Collateral explanation | EN Collateral | - |
-| 1:05 | Scroll ke "Nyala" | Triple Yield explanation | EN Triple Yield | - |
-| 1:25 | Transisi | Fade out | - | - |
-
----
-
-## Scene 3 — Connect Wallet (1:30 – 2:10)
-
-| Waktu | Aksi | Visual | Audio | Wallet |
-|-------|------|--------|-------|--------|
-| 1:30 | Scroll ke CTA | CTA section visible | EN CTA intro | - |
-| 1:35 | Klik "Launch the App" | Navigasi ke `/dapp/pools` | EN Launch | - |
-| 1:40 | Halaman pools loading | Pool cards render | EN Pools | - |
-| 1:45 | Klik "CONNECT" | Tombol di pojok kanan | EN Connect | A |
-| 1:50 | Popup Freighter muncul | Enter password + approve | EN Password | A |
-| 2:00 | Wallet connected | Tombol jadi "DISCONNECT" | EN Connected | A |
-| 2:08 | Transisi | - | - | A |
+| Waktu | Aksi | Audio | Wallet |
+|-------|------|-------|--------|
+| 0:20 | Navigasi ke `/dapp/pools` | - | - |
+| 0:23 | Klik CONNECT pojok kanan | EN/ID Connect | A |
+| 0:25 | Freighter popup → enter password | - | A |
+| 0:32 | Wallet connected (DISCONNECT muncul) | - | A |
 
 ---
 
-## Scene 4 — Create Pool (2:10 – 3:10)
+## Scene 3 — Create Pool (0:35 – 1:00)
 
-| Waktu | Aksi | Visual | Audio | Wallet |
-|-------|------|--------|-------|--------|
-| 2:10 | Klik "+ Create Pool" | Navigasi ke `/dapp/create` | EN Create intro | A |
-| 2:15 | Isi form | Pool Name, Contribution, Max Members | EN Form | A |
-| 2:35 | Klik "Create Pool" | Loading state | EN Sign | A |
-| 2:40 | Popup Freighter | Sign transaction | - | A |
-| 2:50 | Pool created! | ✅ Pool Created muncul | EN Success | A |
-| 2:55 | Klik "View Pool" | Navigasi ke detail pool | EN Pool ready | A |
-| 3:08 | Transisi | - | - | A |
+| Waktu | Aksi | Audio | Wallet |
+|-------|------|-------|--------|
+| 0:35 | Klik "+ Create Pool" | EN/ID Create | A |
+| 0:38 | Isi form: "Demo Arisan", 10, 2 | - | A |
+| 0:45 | Klik "Create Pool" | - | A |
+| 0:48 | Freighter sign | - | A |
+| 0:55 | ✅ Pool Created | - | A |
 
 ---
 
-## Scene 5 — Join Pool (3:10 – 4:10)
+## Scene 4 — Join Pool (1:00 – 1:20)
 
-| Waktu | Aksi | Visual | Audio | Wallet |
-|-------|------|--------|-------|--------|
-| 3:10 | Pool detail render | Stats, status, participants | EN Join intro | A |
-| 3:20 | **📌 SWITCH WALLET** | Freighter → Wallet B | - | B |
-| 3:25 | Klik "Join" | Popup Freighter → sign | EN Join B | B |
-| 3:35 | Member B joined | Participants count 2/5 | EN Joined B | B |
-| 3:40 | **📌 SWITCH WALLET** | Freighter → Wallet C | - | C |
-| 3:45 | Klik "Join" | Popup Freighter → sign | EN Join C | C |
-| 3:55 | Member C joined | Participants 3/5 | EN Joined C | C |
-| 4:00 | Status perubahan | Pool jadi READY (kalo full) | EN Ready | C |
-| 4:08 | Transisi | - | - | C |
+| Waktu | Aksi | Audio | Wallet |
+|-------|------|-------|--------|
+| 1:00 | Buka pool detail | - | A |
+| 1:03 | **Switch wallet** B | EN/ID Join | B |
+| 1:08 | Klik Join → sign | - | B |
+| 1:12 | **Switch wallet** C | - | C |
+| 1:15 | Klik Join → sign | - | C |
+| 1:18 | Pool READY (kalo 2 member penuh) | - | C |
 
 ---
 
-## Scene 6 — Start Pool + Contribute (4:10 – 5:40)
+## Scene 5 — Start + Winner (1:20 – 1:40)
 
-| Waktu | Aksi | Visual | Audio | Wallet |
-|-------|------|--------|-------|--------|
-| 4:10 | **📌 SWITCH WALLET** | Freighter → Wallet A | - | A |
-| 4:15 | Klik "Start Pool" | Pool jadi ACTIVE | EN Start pool | A |
-| 4:25 | State berubah | Cycle 1, Funds, Progress bar | EN Cycle 1 | A |
-| 4:30 | Klik "Select Winner" | Smart contract pilih acak | EN Select winner | A |
-| 4:40 | Winner terpilih | Round winner muncul + round 2 | EN Winner | A |
-| 4:50 | **📌 SWITCH WALLET** | Freighter → Wallet B | - | B |
-| 4:55 | Klik "Deposit" | Contribute round 2 | EN Contribute | B |
-| 5:05 | Popup Freighter | Sign transaction | - | B |
-| 5:15 | Contribute sukses | Balance update, tickets earned | EN Contributed | B |
-| 5:25 | **📌 SWITCH WALLET** | Freighter → Wallet C | - | C |
-| 5:30 | Klik "Deposit" | Contribute round 2 | EN C contribute | C |
-| 5:38 | Transisi | - | - | C |
+| Waktu | Aksi | Audio | Wallet |
+|-------|------|-------|--------|
+| 1:20 | **Switch wallet** A | EN/ID Start | A |
+| 1:23 | Klik "Start Pool" | - | A |
+| 1:26 | Pool ACTIVE | - | A |
+| 1:28 | Klik "Select Winner" | EN/ID Winner | A |
+| 1:35 | Winner terpilih | - | A |
 
 ---
 
-## Scene 7 — Yield & Harvest (5:40 – 6:40)
+## Scene 6 — Contribute + Claim (1:40 – 2:05)
 
-| Waktu | Aksi | Visual | Audio | Wallet |
-|-------|------|--------|-------|--------|
-| 5:40 | Navigasi ke `/dapp/yield` | Yield page render | EN Yield intro | A |
-| 5:50 | Scroll ke Live Stats | TVL di Blend, Total Yield | EN Stats | A |
-| 6:00 | Scroll ke 3 Pillars | Merata, Monthly, Gacha | EN Pillars | A |
-| 6:10 | Scroll ke Member Yields | Member cards + harvest | EN Members | A |
-| 6:20 | Klik "Harvest" | (kalo admin pool) | EN Harvest | A |
-| 6:30 | Harvest sukses | Alert muncul | EN Harvested | A |
-| 6:38 | Transisi | - | - | A |
-
----
-
-## Scene 8 — Gacha Vault (6:40 – 7:10)
-
-| Waktu | Aksi | Visual | Audio | Wallet |
-|-------|------|--------|-------|--------|
-| 6:40 | Navigasi ke `/dapp/gacha` | Gacha page render | EN Gacha intro | A |
-| 6:50 | Tab Annual/Pool | Gacha info, tickets | EN Tickets | A |
-| 7:00 | Scroll ke info | Prize tiers, draw date | EN Prize | A |
-| 7:08 | Transisi | - | - | A |
+| Waktu | Aksi | Audio | Wallet |
+|-------|------|-------|--------|
+| 1:40 | **Switch wallet** B | EN/ID Contribute | B |
+| 1:44 | Klik "Deposit" → sign | - | B |
+| 1:50 | **Switch wallet** C | - | C |
+| 1:53 | Klik "Deposit" → sign | - | C |
+| 1:57 | **Switch wallet** A | EN/ID Claim | A |
+| 2:00 | Klik "Claim Payout" → sign | - | A |
 
 ---
 
-## Scene 9 — Claim + Final (7:10 – 7:55)
+## Scene 7 — Yield ⭐ (2:05 – 2:50)
 
-| Waktu | Aksi | Visual | Audio | Wallet |
-|-------|------|--------|-------|--------|
-| 7:10 | Buka pool detail | Pool detail render | EN Claim intro | A |
-| 7:20 | Klik "Claim Payout" | Kalo ada pending payout | EN Payout | A |
-| 7:30 | Transaksi sukses | ✅ TX hash muncul | EN Claimed | A |
-| 7:35 | Klik "Claim Final" | Kalo pool completed | EN Final | A |
-| 7:45 | Transaksi sukses | Collateral + yield kembali | EN Final done | A |
-| 7:53 | Transisi | - | - | A |
-
----
-
-## Scene 10 — On-Chain Verification (7:55 – 8:40)
-
-| Waktu | Aksi | Visual | Audio | Wallet |
-|-------|------|--------|-------|--------|
-| 7:55 | Buka Stellar Expert | new tab | EN Explorer intro | - |
-| 8:00 | Search contract Blend | Paste address | EN Blend pool | - |
-| 8:10 | Filter by arisan address | Show supply events | EN Supply events | - |
-| 8:20 | Scroll events | Withdraw, harvest events | EN Verify | - |
-| 8:30 | Tab Contract balances | 15M+ XLM di Blend | EN TVL | - |
-| 8:38 | Transisi | - | - | - |
+| Waktu | Aksi | Audio | Wallet |
+|-------|------|-------|--------|
+| 2:05 | Navigasi ke `/dapp/yield` | EN/ID Yield intro | A |
+| 2:10 | Live On-Chain Data (TVL, Total Yield) | EN/ID Blend | A |
+| 2:20 | Scroll ke 3 pillars (Merata, Monthly, Gacha) | EN/ID Pillars | A |
+| 2:30 | Scroll ke Member Yields | EN/ID Harvest | A |
+| 2:35 | Klik Harvest → sign | - | A |
+| 2:45 | Harvest sukses | EN/ID Yield closing | A |
 
 ---
 
-## Scene 11 — CTA (8:40 – 9:00)
+## Scene 8 — Gacha (2:50 – 3:10)
 
-| Waktu | Aksi | Visual | Audio | Wallet |
-|-------|------|--------|-------|--------|
-| 8:40 | Kembali ke landing page | Tab ARTEL | EN CTA | - |
-| 8:45 | Scroll ke CTA section | Launch button, GitHub link | EN Try it | - |
-| 8:55 | End screen | Logo + link | EN Outro | - |
-| 9:00 | **END** | Fade to black | - | - |
+| Waktu | Aksi | Audio | Wallet |
+|-------|------|-------|--------|
+| 2:50 | Navigasi ke `/dapp/gacha` | EN/ID Gacha | A |
+| 2:55 | Nunjuk jackpot info, tickets | - | A |
+| 3:05 | Scroll ke prize tiers | - | A |
+
+---
+
+## Scene 9 — Claim Final (3:10 – 3:30)
+
+| Waktu | Aksi | Audio | Wallet |
+|-------|------|-------|--------|
+| 3:10 | Buka pool detail (pool selesai) | EN/ID Final | A |
+| 3:15 | Klik "Claim Final" → sign | - | A |
+| 3:25 | ✅ TX sukses | - | A |
+
+---
+
+## Scene 10 — On-Chain (3:30 – 3:50)
+
+| Waktu | Aksi | Audio | Wallet |
+|-------|------|-------|--------|
+| 3:30 | Buka Stellar Expert | EN/ID Explorer | - |
+| 3:35 | Cari Blend pool, tunjuk events supply | - | - |
+| 3:40 | Tunjuk balances (15M+ XLM) | - | - |
+
+---
+
+## Scene 11 — CTA (3:50 – 4:00)
+
+| Waktu | Aksi | Audio | Wallet |
+|-------|------|-------|--------|
+| 3:50 | Kembali ke landing page → CTA section | EN/ID Closing | - |
+| 3:58 | End screen | - | - |
+| **4:00** | **END** | - | - |
