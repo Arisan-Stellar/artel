@@ -46,3 +46,5 @@ node_modules
 out
 .vercel
 *.log
+frontend/playwright-report/
+frontend/test-results/
