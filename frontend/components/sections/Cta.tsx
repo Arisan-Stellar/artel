@@ -11,9 +11,9 @@ import { DAPP_URL } from "@/components/ui/MiniNav";
 const EXPLORER_URL = "https://stellar.expert/explorer/testnet";
 
 const CONTRACTS = [
-  { label: "arisan-contract", nameKey: "contractArisan" as const, addr: "CD5JN4BZGND2ZDWFWTE4LQTXQNWLGFF4ZSKLBGRLF6CPVVNWVGH6PH5" },
-  { label: "yield-vault", nameKey: "contractVault" as const, addr: "CCIUGLBEGQJGRTJYIVMTRKIHYRXULKWGXQVKAS5ARLR6QRYMQSDGOAH" },
-  { label: "artel-factory", nameKey: "contractFactory" as const, addr: "CCDM7ZNAWTR4JQNXYTEVHB3LWKENQSORS3BEWEQSEKLMG3NHDYBBABE" },
+  { label: "arisan-contract", nameKey: "contractArisan" as const, addr: "CBVWEPXBBCPAK2A3NCCKIP6ORYB32VH3OKRQBUWNSMONQC5KEORPEQSN" },
+  { label: "yield-vault", nameKey: "contractVault" as const, addr: "CA65HU7KGU4EU4DGQYEQCCUBHAHFW6BOGCOKVRIIYGOOSYLSDH5WLIR7" },
+  { label: "blend-pool", nameKey: "contractFactory" as const, addr: "CCEBVDYM32YNYCVNRXQKDFFPISJJCV557CDZEIRBEE4NCV4KHPQ44HGF" },
 ];
 
 const TRUST_BADGES = [
@@ -109,7 +109,7 @@ export function Cta() {
             className="inline-flex items-center gap-1.5 border-[3px] border-[var(--color-text)] px-5 py-3 text-sm font-bold text-[var(--color-text)] hover:bg-[var(--color-text)] hover:text-[var(--color-surface)] transition">
             {dict.cta.secondaryButton} <ExternalLink className="size-3.5" />
           </a>
-          <a href="#" target="_blank" rel="noopener noreferrer"
+          <a href="https://github.com/Arisan-Stellar/artel" target="_blank" rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 border-[3px] border-[var(--color-text)] bg-[var(--color-text)] px-5 py-3 text-sm font-bold text-[var(--color-surface)] hover:bg-[var(--color-surface)] hover:text-[var(--color-text)] transition">
             {dict.cta.githubButton} <Code className="size-3.5" />
           </a>
